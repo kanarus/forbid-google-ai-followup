@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Forbid Google AI Followup",
+  "version": "0.1.2",
+  "description": "Forbid followup at the end of AI overview in Google search.",
+  "content_scripts": [
+    {
+      "matches": ["*://www.google.com/search*"],
+      "js": ["main.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "forbid-google-ai-followup@kanarus.dev",
+      "data_collection_permissions": {
+        "required": ["websiteContent"]
+      }
+    }
+  }
+}

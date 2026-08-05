@@ -38,7 +38,7 @@ const observer = new MutationObserver(() => {
       }
       if (!areSiblings(candidates)) {
         console.error('[forbid-google-ai-followup]'
-          + ` error (${category}): unexpectedly invalid selector`
+          + ` internal error (${category}): unexpected DOM structure`
         );
         return;
       }

@@ -27,11 +27,27 @@
       mission-control = {
         wrapperName = "run";
         scripts = {
-          build = {
-            description = "Build this web extension from src to dist";
+          "clean" = {
+            description = "Clean up dist";
             exec = ''
               rm -rf "$FLAKE_ROOT/dist"
-              web-ext build --source-dir "$FLAKE_ROOT/src" --artifacts-dir "$FLAKE_ROOT/dist"
+            '';
+          };
+          "devbuild" = {
+            description = "Dev-build this web extension from src to dist, overwriting existing artifact of the same version.";
+            exec = ''
+              web-ext build \
+                --source-dir "$FLAKE_ROOT/src" \
+                --artifacts-dir "$FLAKE_ROOT/dist" \
+                --overwrite-dest
+            '';
+          };
+          "build" = {
+            description = "Production-build this web extension from src to dist. The same version of artifact MUST NOT already exists in dist.";
+            exec = ''
+              web-ext build \
+                --source-dir "$FLAKE_ROOT/src" \
+                --artifacts-dir "$FLAKE_ROOT/dist"
             '';
           };
         };

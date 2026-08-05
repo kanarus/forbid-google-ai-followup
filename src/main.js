@@ -1,96 +1,57 @@
-function log(msg) {
-  console.log(`[forbid-google-ai-followup] ${msg}`);
-}
-
 /**
-  * @type {Recoed<string, string>} RemovalLog
-  *
-  * `phase`-`kind` mapping of already-removed followups
-  */
-const RemovalLog = {};
-
-/**
-  * @param {string} phase
-  * @param {NodeListOf<Element>} candidates
+  * @param {NodeListOf<Element>} elements
   * @returns {boolean}
   */
-function detectAndRemoveFollowupFromCandidates(phase, candidates) {
-  if (typeof RemovalLog[phase] === 'string' || candidates.length == 0) {
-    return false;
+function areSiblings(elements) {
+  if (elements.length === 0) {
+    return true;
   }
-
-  const len = candidates.length;
-  const parent = candidates.item(0).parentNode;
-  for (let i = 1; i < len; i++) {
-    if (candidates.item(i).parentNode != parent) {
-      log(`error (candidates are not siblings, phase: ${phase})`);
+  
+  const parent = elements.item(0).parentElement;
+  for (let i = 0; i < elements.length; i++) {
+    if (parent !== elements.item(i).parentElement) {
       return false;
-    }
-  }
-
-  /** @type {'single' | 'holding-list' | 'last-one'} kind */
-  let KIND;
-  if (len == 1) {
-    KIND = 'single';
-    console.debug(candidates.item(0));
-    candidates.item(0).style.display = 'none';
-    RemovalLog[phase] = KIND;
-    log(`removed (kind: ${KIND}, phase: ${phase})`);
-  } else {
-    const [preLast, last] = [candidates.item(len - 2), candidates.item(len - 1)];
-    const isHoldingList = (/* preLast -> ul -> last */
-      preLast.nextElementSibling.tagName.toLowerCase() === 'ul' &&
-      preLast.nextElementSibling.nextElementSibling === last
-    );
-    if (isHoldingList) {
-      KIND = 'holding-list';
-      console.debug([
-        preLast,
-        preLast.nextElementSibling,
-        preLast.nextElementSibling.nextElementSibling,
-      ]);
-      preLast.style.display = 'none';
-      preLast.nextElementSibling.style.display = 'none';
-      preLast.nextElementSibling.nextElementSibling.style.display = 'none';
-      RemovalLog[phase] = KIND;
-      log(`removed (kind: ${KIND}, phase: ${phase})`);
-    } else {
-      KIND = 'last-one';
-      console.debug(last);
-      last.style.display = 'none';
-      RemovalLog[phase] = KIND;
-      log(`removed (kind: ${KIND}, phase: ${phase})`, last);
     }
   }
   return true;
 }
 
-/**
-  * @param {string} phase
-  * @param {string[]} selector
-  * @returns {void}
-  */
-function detectAndRemoveFollowupBy(phase, selectors) {
-  for (const selector of selectors) {
-    const candidates = document.querySelectorAll(selector);
-    if (detectAndRemoveFollowupFromCandidates(phase, candidates)) {
-      log(`hit by selector '${selector}'`);
-      return;
-    }
-  }
-}
+let DONE = false;
 
 const observer = new MutationObserver(() => {
   Object.entries({
-    'folded-search-overview': [
-      'div[style="display: contents"]>div[data-bfc=""][ahbak="true"]',
-    ],
-    'expanded-search-overview': [
-      'div[style="display: contents"]>div[data-bfc=""][class=""]',
-      'div[data-container-id="main-col"]>div[data-bfc=""]',
-    ],
+    'folded':
+      'div[data-container-id="main-col"]>div[style="display: contents"]>div[data-bfc=""][ahbak="true"]',
+    'directlyfolded':
+      'div[data-container-id="main-col"]>div[data-bfc=""][ahbak="true"]',
+    'expanded':
+      'div[data-container-id="main-col"]>div[style="display: contents"]>div[data-bfc=""][class=""]',
+    'directlyexpanded':
+      'div[data-container-id="main-col"]>div[data-bfc=""][class=""]',
   }).forEach(
-    ([phase, selectors]) => detectAndRemoveFollowupBy(phase, selectors)
+    ([category, selector]) => {
+      const candidates = document.querySelectorAll(selector);
+
+      if (DONE || candidates.length === 0) {
+        // Nothing to process; logging here is annoying as it's repeated on every DOM mutation
+        return;
+      }
+      if (!areSiblings(candidates)) {
+        console.error('[forbid-google-ai-followup]'
+          + ` error (${category}): unexpectedly invalid selector`
+        );
+        return;
+      }
+
+      const followup = candidates.item(candidates.length - 1);
+      followup.style.display = "none";
+      console.log('[forbid-google-ai-followup]'
+        + ` followup removed (${category}): "${followup.textContent}"`
+        + ' (corresponded element may be shown below)'
+      );
+      console.debug(followup); // This may be blocked in Chrome
+      DONE = true;
+    }
   );
 });
 

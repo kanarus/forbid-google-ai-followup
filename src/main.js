@@ -10,6 +10,37 @@ function queryLastMatch(selector) {
 }
 
 /**
+  * @param {Element} element
+  * @returns {Element | null}
+  */
+function nextVisibleElementSibling(element) {
+  let cur = element.nextElementSibling;
+  while (true) {
+    if (cur === null) return null;
+    if (cur.style.display === "none") {
+      cur = cur.nextElementSibling;
+      continue;
+    }
+    return cur;
+  }
+}
+/**
+  * @param {Element} element
+  * @returns {Element | null}
+  */
+function previousVisibleElementSibling(element) {
+  let cur = element.previousElementSibling;
+  while (true) {
+    if (cur === null) return null;
+    if (cur.style.display === "none") {
+      cur = cur.previousElementSibling;
+      continue;
+    }
+    return cur;
+  }
+}
+
+/**
   * @typedef {'folded' | 'directlyfolded' | 'expanded' | 'directlyexpanded'} FollowupState
   */
 
@@ -20,7 +51,7 @@ const FOLLOWUP_STATES = ['folded', 'directlyfolded', 'expanded', 'directlyexpand
   * @typedef {{ type: 'single_container', container: HTMLDivElement } | { type: 'trailing_outer_list', container: HTMLDivElement, list: HTMLUListElement } | { type: 'sandwitch_outer_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} FollowupEnum
   */
 
-class Followup {
+export class Followup {
   /** @type {FollowupState} */
   state;
   /** @type {FollowupEnum} */
@@ -96,21 +127,21 @@ class Followup {
       return null;
     }
 
-    if (Followup.#isFollowupList(lastMatch.nextElementSibling)) {
+    const nextVES = nextVisibleElementSibling(lastMatch);
+    const prevVES = previousVisibleElementSibling(lastMatch);
+    const prevPrevVES = previousVisibleElementSibling(previousVisibleElementSibling(lastMatch));
+    if (Followup.#isFollowupList(nextVES)) {
       return new Followup(state, {
         type: 'trailing_outer_list',
         container: lastMatch,
-        list: lastMatch.nextElementSibling,
+        list: nextVES,
       });
 
-    } else if (
-      Followup.#isFollowupList(lastMatch.previousElementSibling) &&
-      Followup.#isFollowupContainer(lastMatch.previousElementSibling.previousElementSibling)
-    ) {
+    } else if (Followup.#isFollowupList(prevVES) && Followup.#isFollowupContainer(prevPrevVES)) {
       return new Followup(state, {
         type: 'sandwitch_outer_list',
-        head: lastMatch.previousElementSibling.previousElementSibling,
-        list: lastMatch.previousElementSibling,
+        head: prevPrevVES,
+        list: prevVES,
         tail: lastMatch,
       });
 

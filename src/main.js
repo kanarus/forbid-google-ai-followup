@@ -95,7 +95,7 @@ class Followup {
       it !== null &&
       it.tagName.toLowerCase() === "div" &&
       it.getAttribute("data-bfc") === "" &&
-      (it.getAttribute("ahbak") || it.getAttribute("class")) === ""
+      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "")
     );
   }
 
@@ -107,7 +107,7 @@ class Followup {
     return (
       maybeFollowupList !== null &&
       maybeFollowupList.tagName.toLowerCase() === "ul" &&
-      Array.from(maybeFollowupList.children).every((c) => Followup.#isFollowupContainer(c))
+      Array.from(maybeFollowupList.children).every(Followup.#isFollowupContainer)
     );
   }
 

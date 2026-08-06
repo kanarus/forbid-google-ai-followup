@@ -10,7 +10,7 @@ For people feeling AI's followup extremely annoying, this extension dynamically 
 
 | Browser | Install from ... |
 | :-----: | ---------------- |
-| Firefox | [Firefox Add-ons](https://addons.mozilla.org/addons/forbid-google-ai-followup) |
+| Firefox | [Firefox Add-ons](https://addons.mozilla.org/addon/forbid-google-ai-followup) |
 | Chrome  | TODO (Chrome Web Store) |
 | Edge    | TODO (Edge Add-ons) |
 | Opera   | TODO (Opera Add-ons) |
@@ -18,4 +18,8 @@ For people feeling AI's followup extremely annoying, this extension dynamically 
 
 ## Privacy Policy
 
+Forbid Google AI Followup does not collect user data. See [PRIVACY.md](./PRIVACY.md) for details.
 
+## License
+
+Forbid Google AI Followup is licensed under MIT LICENSE ([LICENSE](./LICENSE) or https://opensource.org/license/mit).

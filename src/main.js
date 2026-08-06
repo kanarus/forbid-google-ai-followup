@@ -17,11 +17,8 @@ function nextVisibleElementSibling(element) {
   let cur = element.nextElementSibling;
   while (true) {
     if (cur === null) return null;
-    if (cur.style.display === "none") {
-      cur = cur.nextElementSibling;
-      continue;
-    }
-    return cur;
+    if (cur.style.display !== "none") return cur;
+    cur = cur.nextElementSibling;
   }
 }
 /**
@@ -32,11 +29,8 @@ function previousVisibleElementSibling(element) {
   let cur = element.previousElementSibling;
   while (true) {
     if (cur === null) return null;
-    if (cur.style.display === "none") {
-      cur = cur.previousElementSibling;
-      continue;
-    }
-    return cur;
+    if (cur.style.display !== "none") return cur;
+    cur = cur.previousElementSibling;
   }
 }
 

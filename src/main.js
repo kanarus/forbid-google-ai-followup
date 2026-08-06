@@ -86,6 +86,18 @@ class Followup {
   }
 
   /**
+    * @param {Element | null} container
+    * @returns {boolean}
+    */
+  static #isHeadingContainer(container) {
+    return (
+      container !== null &&
+      container.tagName.toLowerCase() === "div" &&
+      container.querySelector('div[role="heading"]') !== null
+    );
+  }
+
+  /**
     * @param {Element | null} maybeFollowupContainer
     * @returns {boolean}
     */
@@ -95,19 +107,23 @@ class Followup {
       it !== null &&
       it.tagName.toLowerCase() === "div" &&
       it.getAttribute("data-bfc") === "" &&
-      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "")
+      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "") &&
+      !Followup.#isHeadingContainer(it)
     );
   }
 
   /**
-    * @param {Element | null} maybeFollowupList
+    * @param {Element | null} maybeOuterList
     * @returns {boolean}
     */
-  static #isFollowupList(maybeFollowupList) {
+  static #isOuterList(maybeOuterList) {
     return (
-      maybeFollowupList !== null &&
-      maybeFollowupList.tagName.toLowerCase() === "ul" &&
-      Array.from(maybeFollowupList.children).every(Followup.#isFollowupContainer)
+      maybeOuterList !== null &&
+      maybeOuterList.tagName.toLowerCase() === "ul" &&
+      Array.from(maybeOuterList.children).every(it =>
+        it.tagName.toLowerCase() === "div" &&
+        it.getAttribute("data-bfc") === ""
+      )
     );
   }
 
@@ -123,15 +139,36 @@ class Followup {
 
     const nextVES = nextVisibleElementSibling(lastMatch);
     const prevVES = previousVisibleElementSibling(lastMatch);
-    const prevPrevVES = previousVisibleElementSibling(previousVisibleElementSibling(lastMatch));
-    if (Followup.#isFollowupList(nextVES)) {
+    const prevPrevVES = previousVisibleElementSibling(prevVES);
+    const prevPrevPrevVES = previousVisibleElementSibling(prevPrevVES);
+    if (Followup.#isOuterList(nextVES)) {
       return new Followup(state, {
         type: 'trailing_outer_list',
         container: lastMatch,
         list: nextVES,
       });
 
-    } else if (Followup.#isFollowupList(prevVES) && Followup.#isFollowupContainer(prevPrevVES)) {
+    } else if (
+      Followup.#isOuterList(prevVES) &&
+      Followup.#isFollowupContainer(prevPrevVES) &&
+      !Followup.#isHeadingContainer(prevPrevPrevVES)
+      // If `prevPrevPrevVES` is a heading container,
+      // it means:
+      //
+      // ```md
+      // ### prevPrevPrevVES
+      //
+      // prevPrevVES
+      //
+      // - prevVES
+      // - prevVES
+      //
+      // lastMatch
+      // ```
+      //
+      // then only `lastMatch` will be a followup,
+      // while others are components of a essential section.
+    ) {
       return new Followup(state, {
         type: 'sandwitch_outer_list',
         head: prevPrevVES,

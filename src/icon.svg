@@ -1,5 +1,0 @@
-<?xml version="1.0" standalone="no"?>
-<svg width="128" height="128" version="1.1" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="128" height="128" stroke="red" fill="transparent" stroke-width="1" />
-  <rect x="16" y="16" width="96" height="96" stroke="black" fill="blue" stroke-width="1" />
-</svg>

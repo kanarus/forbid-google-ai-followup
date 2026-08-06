@@ -95,7 +95,8 @@ class Followup {
       it !== null &&
       it.tagName.toLowerCase() === "div" &&
       it.getAttribute("data-bfc") === "" &&
-      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "")
+      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "") &&
+      !(Followup.#isHeadingContainer(it))
     );
   }
 
@@ -150,8 +151,7 @@ class Followup {
     } else if (
       Followup.#isOuterList(prevVES) &&
       Followup.#canBeFollowupContainer(prevPrevVES) &&
-      !Followup.#isHeadingContainer(prevPrevVES) &&
-      !Followup.#isHeadingContainer(prevPrevPrevVES)
+      !(Followup.#isHeadingContainer(prevPrevPrevVES))
       // If `prevPrevPrevVES` is a heading container,
       // it means:
       //

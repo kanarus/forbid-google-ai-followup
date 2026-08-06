@@ -51,7 +51,7 @@ const FOLLOWUP_STATES = ['folded', 'directlyfolded', 'expanded', 'directlyexpand
   * @typedef {{ type: 'single_container', container: HTMLDivElement } | { type: 'trailing_outer_list', container: HTMLDivElement, list: HTMLUListElement } | { type: 'sandwitch_outer_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} FollowupEnum
   */
 
-export class Followup {
+class Followup {
   /** @type {FollowupState} */
   state;
   /** @type {FollowupEnum} */

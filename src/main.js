@@ -10,36 +10,42 @@ function queryLastMatch(selector) {
 }
 
 /**
-  * @typedef {'folded' | 'directlyfolded' | 'expanded' | 'directlyexpanded'} FollowupContainerForm
+  * @typedef {'folded' | 'directlyfolded' | 'expanded' | 'directlyexpanded'} FollowupState
   */
 
-/** @type {[FollowupContainerForm, FollowupContainerForm, FollowupContainerForm, FollowupContainerForm]} */
-const FOLLOWUP_CONTAINER_FORMS = ['folded', 'directlyfolded', 'expanded', 'directlyexpanded'];
+/** @type {[FollowupState, FollowupState, FollowupState, FollowupState]} */
+const FOLLOWUP_STATES = ['folded', 'directlyfolded', 'expanded', 'directlyexpanded'];
 
 /**
   * @typedef {{ type: 'single_container', container: HTMLDivElement } | { type: 'trailing_outer_list', container: HTMLDivElement, list: HTMLUListElement } | { type: 'sandwitch_outer_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} FollowupEnum
   */
 
 class Followup {
+  /** @type {FollowupState} */
+  state;
   /** @type {FollowupEnum} */
   value;
 
-  /** @param {FollowupEnum} value */
-  constructor(value) {
+  /**
+    * @param {FollowupState} state
+    * @param {FollowupEnum} value
+    */
+  constructor(state, value) {
+    this.state = state;
     this.value = value;
   }
 
   /**
-    * @param {FollowupContainerForm} form
+    * @param {FollowupState} state
     * @returns {string}
     */
-  static #followupContainerSelector(form) {
+  static #followupContainerSelector(state) {
     const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
     const display_contents = 'div[style="display: contents"]';
     const folded_followup_candidates = 'div[data-bfc=""][ahbak="true"]';
     const expanded_followup_candidates = 'div[data-bfc=""][class=""]';
 
-    switch (form) {
+    switch (state) {
       case "folded":
         return `${mcpr_main_col} > ${display_contents} > ${folded_followup_candidates}`;
       case "directlyfolded":
@@ -49,7 +55,7 @@ class Followup {
       case "directlyexpanded":
         return `${mcpr_main_col} > ${expanded_followup_candidates}`;
       default:
-        /** @type {never} */ const _ = form;
+        /** @type {never} */ const _ = state;
         throw Error(_);
     }
   }
@@ -63,7 +69,6 @@ class Followup {
     return (
       it !== null &&
       it.tagName.toLowerCase() === "div" &&
-      it.getAttribute() === "div" &&
       it.getAttribute("data-bfc") === "" &&
       (it.getAttribute("ahbak") || it.getAttribute("class")) === ""
     );
@@ -82,17 +87,17 @@ class Followup {
   }
 
   /**
-    * @param {FollowupContainerForm} form
+    * @param {FollowupState} state
     * @returns {Followup | null}
     */
-  static detect(form) {
-    const lastMatch = queryLastMatch(Followup.#followupContainerSelector(form));
+  static detectWhere(state) {
+    const lastMatch = queryLastMatch(Followup.#followupContainerSelector(state));
     if (lastMatch === null) {
       return null;
     }
 
     if (Followup.#isFollowupList(lastMatch.nextElementSibling)) {
-      return new Followup({
+      return new Followup(state, {
         type: 'trailing_outer_list',
         container: lastMatch,
         list: lastMatch.nextElementSibling,
@@ -102,7 +107,7 @@ class Followup {
       Followup.#isFollowupList(lastMatch.previousElementSibling) &&
       Followup.#isFollowupContainer(lastMatch.previousElementSibling.previousElementSibling)
     ) {
-      return new Followup({
+      return new Followup(state, {
         type: 'sandwitch_outer_list',
         head: lastMatch.previousElementSibling.previousElementSibling,
         list: lastMatch.previousElementSibling,
@@ -110,11 +115,22 @@ class Followup {
       });
 
     } else {
-      return new Followup({
+      return new Followup(state, {
         type: 'single_container',
         container: lastMatch,
       });
     }
+  }
+
+  /**
+    * @returns {Followup | null}
+    */
+  static detect() {
+    for (const state of FOLLOWUP_STATES) {
+      const dw = Followup.detectWhere(state);
+      if (dw !== null) return dw;
+    }
+    return null;
   }
 
   /**
@@ -185,22 +201,20 @@ class Followup {
 let DONE = false;
 
 const observer = new MutationObserver(() => {
-  FOLLOWUP_CONTAINER_FORMS.forEach((form) => {
-    if (DONE) return;
+  if (DONE) return;
 
-    const followup = Followup.detect(form);
-    if (followup === null) return;
+  const followup = Followup.detect();
+  if (followup === null) return;
 
-    console.debug(`[forbid-google-ai-followup] detected: ${form}${followup.outerList ? ' with outer list' : ''})`);
-    followup.debuglog();
-    
-    followup.remove();
-    console.log(`[forbid-google-ai-followup] removed: "${followup.textContent}"`);
+  console.debug(`[forbid-google-ai-followup] detected: ${followup.state} ${followup.value.type}`);
+  followup.debuglog();
+  
+  followup.remove();
+  console.log(`[forbid-google-ai-followup] removed: "${followup.textContent}"`);
 
-    DONE = true;
-    observer.disconnect();
-    console.debug('[forbid-google-ai-foloowup] successfully disconnected');
-  });
+  DONE = true;
+  observer.disconnect();
+  console.debug('[forbid-google-ai-foloowup] successfully disconnected');
 });
 
 const startObservation = () => {

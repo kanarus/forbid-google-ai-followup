@@ -86,44 +86,43 @@ class Followup {
   }
 
   /**
-    * @param {Element | null} container
+    * @param {Element | null} element
     * @returns {boolean}
     */
-  static #isHeadingContainer(container) {
-    return (
-      container !== null &&
-      container.tagName.toLowerCase() === "div" &&
-      container.querySelector('div[role="heading"]') !== null
-    );
-  }
-
-  /**
-    * @param {Element | null} maybeFollowupContainer
-    * @returns {boolean}
-    */
-  static #isFollowupContainer(maybeFollowupContainer) {
-    const it = maybeFollowupContainer;
+  static #canBeFollowupContainer(element) {
+    const it = element;
     return (
       it !== null &&
       it.tagName.toLowerCase() === "div" &&
       it.getAttribute("data-bfc") === "" &&
-      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "") &&
-      !Followup.#isHeadingContainer(it)
+      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "")
     );
   }
 
   /**
-    * @param {Element | null} maybeOuterList
+    * @param {Element | null} element
     * @returns {boolean}
     */
-  static #isOuterList(maybeOuterList) {
+  static #isOuterList(element) {
     return (
-      maybeOuterList !== null &&
-      maybeOuterList.tagName.toLowerCase() === "ul" &&
-      Array.from(maybeOuterList.children).every(it =>
+      element !== null &&
+      element.tagName.toLowerCase() === "ul" &&
+      Array.from(element.children).every(it =>
         it.tagName.toLowerCase() === "div" &&
         it.getAttribute("data-bfc") === ""
       )
+    );
+  }
+
+  /**
+    * @param {Element | null} element
+    * @returns {boolean}
+    */
+  static #isHeadingContainer(element) {
+    return (
+      element !== null &&
+      element.tagName.toLowerCase() === "div" &&
+      element.querySelector('div[role="heading"]') !== null
     );
   }
 
@@ -150,7 +149,8 @@ class Followup {
 
     } else if (
       Followup.#isOuterList(prevVES) &&
-      Followup.#isFollowupContainer(prevPrevVES) &&
+      Followup.#canBeFollowupContainer(prevPrevVES) &&
+      !Followup.#isHeadingContainer(prevPrevVES) &&
       !Followup.#isHeadingContainer(prevPrevPrevVES)
       // If `prevPrevPrevVES` is a heading container,
       // it means:

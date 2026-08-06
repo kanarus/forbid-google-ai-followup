@@ -14,7 +14,7 @@
     "gecko": {
       "id": "forbid-google-ai-followup@kanarus.dev",
       "data_collection_permissions": {
-        "required": ["websiteContent"]
+        "required": ["none"]
       }
     }
   }

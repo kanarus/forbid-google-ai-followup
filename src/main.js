@@ -1,40 +1,4 @@
 /**
-  * @param {string} selector
-  * @returns {Element | null}
-  */
-function queryLastMatch(selector) {
-  const candidates = document.querySelectorAll(selector);
-  return candidates.length > 0
-    ? candidates.item(candidates.length - 1)
-    : null;
-}
-
-/**
-  * @param {Element} element
-  * @returns {Element | null}
-  */
-function nextVisibleElementSibling(element) {
-  let cur = element.nextElementSibling;
-  while (true) {
-    if (cur === null) return null;
-    if (cur.style.display !== "none") return cur;
-    cur = cur.nextElementSibling;
-  }
-}
-/**
-  * @param {Element} element
-  * @returns {Element | null}
-  */
-function previousVisibleElementSibling(element) {
-  let cur = element.previousElementSibling;
-  while (true) {
-    if (cur === null) return null;
-    if (cur.style.display !== "none") return cur;
-    cur = cur.previousElementSibling;
-  }
-}
-
-/**
   * @param {number} delayMS
   * @param {() => void} fn
   * @returns {() => void}
@@ -48,256 +12,235 @@ const debouncedFnByMS = (delayMS, fn) => {
 }
 
 /**
-  * @typedef {'folded' | 'directlyfolded' | 'expanded' | 'directlyexpanded'} OverviewState
+  * @param {Element} element
+  * @returns {element is HTMLDivElement}
   */
-
-/** @type {[OverviewState, OverviewState, OverviewState, OverviewState]} */
-const OVERVIEW_STATES = ['folded', 'directlyfolded', 'expanded', 'directlyexpanded'];
+function isDiv(element) {
+  return element.tagName.toLowerCase() === "div";
+}
+/**
+  * @param {Element} element
+  * @returns {element is HTMLUListElement}
+  */
+function isUl(element) {
+  return element.tagName.toLowerCase() === "ul";
+}
 
 /**
-  * @typedef {{ type: 'single_container', container: HTMLDivElement } | { type: 'trailing_outer_list', container: HTMLDivElement, list: HTMLUListElement } | { type: 'sandwitch_outer_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} Followup
+  * @param {Element} element
+  * @returns {boolean}
+  */
+function isSfcCp(element) {
+  return element.getAttribute("data-sfc-cp") === "";
+}
+/**
+  * @param {Element} element
+  * @returns {boolean}
+  */
+function isBfc(element) {
+  return element.getAttribute("data-bfc") === "";
+}
+
+/**
+  * @param {HTMLElement} element
+  * @returns {boolean}
+  */
+function isInvisible(element) {
+  if (element.style.display === "none") {
+    return true;
+  }
+  if (element.textContent.trim() === "") {
+    return true;
+  }
+  return false;
+}
+
+/**
+  * @typedef {{ type: 'single_text', container: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} Followup
   */
 
-class FollowupHandle {
-  /** @type {OverviewState} */
-  overviewState;
+class FollowupHandler {
   /** @type {Followup} */
   followup;
 
-  /**
-    * @param {OverviewState} overviewState
-    * @param {Followup} followup
-    */
-  constructor(overviewState, followup) {
-    this.overviewState = overviewState;
+  /** @param {Followup} followup */
+  constructor(followup) {
     this.followup = followup;
   }
 
-  /**
-    * @param {OverviewState} os
-    * @returns {string}
-    */
-  static #followupContainerCandidatesSelector(os) {
-    const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
-    const display_contents = 'div[style="display: contents"]';
-    const folded_followup_candidates = 'div[data-bfc=""][ahbak="true"]';
-    const expanded_followup_candidates = 'div[data-bfc=""][class=""]';
-
-    switch (os) {
-      case "folded":
-        return `${mcpr_main_col} > ${display_contents} > ${folded_followup_candidates}`;
-      case "directlyfolded":
-        return `${mcpr_main_col} > ${folded_followup_candidates}`;
-      case "expanded":
-        return `${mcpr_main_col} > ${display_contents} > ${expanded_followup_candidates}`;
-      case "directlyexpanded":
-        return `${mcpr_main_col} > ${expanded_followup_candidates}`;
+  get textContent() {
+    switch (this.followup.type) {
+      case "single_text":
+        return this.followup.container.textContent;
+      case "text_with_list":
+        return this.followup.text.textContent + this.followup.list.textContent;
+      case "texts_sandwitch_list":
+        return this.followup.head.textContent + this.followup.list.textContent + this.followup.tail.textContent;
       default:
-        /** @type {never} */ const _ = os;
-        throw Error(_);
+        /** @type {never} */ const _ = this.followup.type;
+        throw new Error(_);
     }
-  }
-
-  /**
-    * @param {Element | null} element
-    * @returns {boolean}
-    */
-  static #canBeFollowupContainer(element) {
-    return (
-      element !== null &&
-      element.tagName.toLowerCase() === "div" &&
-      element.getAttribute("data-bfc") === "" &&
-      (element.getAttribute("ahbak") === "true" || element.getAttribute("class") === "") &&
-      !(FollowupHandle.#isHeadingContainer(element)) &&
-      !(FollowupHandle.#isCodeBlockContainer(element))
-    );
-  }
-
-  /**
-    * @param {Element | null} element
-    * @returns {boolean}
-    */
-  static #isOuterList(element) {
-    return (
-      element !== null &&
-      element.tagName.toLowerCase() === "ul" &&
-      Array.from(element.children).every(it =>
-        it.tagName.toLowerCase() === "div" &&
-        it.getAttribute("data-bfc") === ""
-      )
-    );
-  }
-
-  /**
-    * @param {Element | null} element
-    * @returns {boolean}
-    */
-  static #isHeadingContainer(element) {
-    return (
-      element !== null &&
-      element.tagName.toLowerCase() === "div" &&
-      element.querySelector('div[role="heading"]') !== null
-    );
-  }
-
-  /**
-    * @param {Element | null} element
-    * @returns {boolean}
-    */
-  static #isCodeBlockContainer(element) {
-    return (
-      element !== null &&
-      element.tagName.toLowerCase() === "div" &&
-      element.querySelector('pre > code') !== null
-    );
-  }
-
-  /**
-    * @param {OverviewState} os
-    * @returns {FollowupHandle | null}
-    */
-  static fromDocumentWhere(os) {
-    const lastMatch = queryLastMatch(FollowupHandle.#followupContainerCandidatesSelector(os));
-    if (lastMatch === null) {
-      return null;
-    }
-
-    const nextVES = nextVisibleElementSibling(lastMatch);
-    const prevVES = previousVisibleElementSibling(lastMatch);
-    const prevPrevVES = previousVisibleElementSibling(prevVES);
-    const prevPrevPrevVES = previousVisibleElementSibling(prevPrevVES);
-    if (FollowupHandle.#isOuterList(nextVES)) {
-      return new FollowupHandle(os, {
-        type: 'trailing_outer_list',
-        container: lastMatch,
-        list: nextVES,
-      });
-    } else if (
-      FollowupHandle.#isOuterList(prevVES) &&
-      FollowupHandle.#canBeFollowupContainer(prevPrevVES) &&
-      !(FollowupHandle.#isHeadingContainer(prevPrevPrevVES))
-      // If `prevPrevPrevVES` is a heading container,
-      // it means the DOM structure is actually:
-      //
-      // ```md
-      // ### prevPrevPrevVES
-      //
-      // prevPrevVES
-      //
-      // - prevVES
-      // - prevVES
-      //
-      // lastMatch
-      // ```
-      //
-      // then only `lastMatch` will be the followup part,
-      // while others are components of a essential overview section.
-    ) {
-      return new FollowupHandle(os, {
-        type: 'sandwitch_outer_list',
-        head: prevPrevVES,
-        list: prevVES,
-        tail: lastMatch,
-      });
-    } else {
-      return new FollowupHandle(os, {
-        type: 'single_container',
-        container: lastMatch,
-      });
-    }
-  }
-
-  /**
-    * @returns {FollowupHandle | null}
-    */
-  static fromDocument() {
-    for (const os of OVERVIEW_STATES) {
-      const fh = FollowupHandle.fromDocumentWhere(os);
-      if (fh !== null) return fh;
-    }
-    return null;
   }
 
   /**
     * NOTE: Maybe blocked in Chrome.
+    *
     * @returns {void}
     */
   dumpElements() {
     switch (this.followup.type) {
-      case "single_container":
+      case "single_text":
         console.debug(this.followup.container);
         return;
-      case "trailing_outer_list":
-        console.debug(this.followup.container);
+      case "text_with_list":
+        console.debug(this.followup.text);
         console.debug(this.followup.list);
         return;
-      case "sandwitch_outer_list":
+      case "texts_sandwitch_list":
         console.debug(this.followup.head);
         console.debug(this.followup.list);
         console.debug(this.followup.tail);
         return;
       default:
         /** @type {never} */ const _ = this.followup.type;
-        throw Error(_);
+        throw new Error(_);
     }
   }
 
   /**
     * @returns {void}
     */
-  removeFollowup() {
+  removeElements() {
     switch (this.followup.type) {
-      case "single_container":
+      case "single_text":
         this.followup.container.style.display = "none";
         return;
-      case "trailing_outer_list":
-        this.followup.container.style.display = "none";
+      case "text_with_list":
+        this.followup.text.style.display = "none";
         this.followup.list.style.display = "none";
         return;
-      case "sandwitch_outer_list":
+      case "texts_sandwitch_list":
         this.followup.head.style.display = "none";
         this.followup.list.style.display = "none";
         this.followup.tail.style.display = "none";
         return;
       default:
         /** @type {never} */ const _ = this.followup.type;
-        throw Error(_);
-    }
-  }
-
-  /**
-    * @returns {string}
-    */
-  get textContent() {
-    switch (this.followup.type) {
-      case "single_container":
-        return this.followup.container.textContent;
-      case "trailing_outer_list":
-        return this.followup.container.textContent + this.followup.list.textContent;
-      case "sandwitch_outer_list":
-        return this.followup.head.textContent + this.followup.list.textContent + this.followup.tail.textContent;
-      default:
-        /** @type {never} */ const _ = this.followup.type;
-        throw Error(_);
+        throw new Error(_);
     }
   }
 }
 
-let DONE = false;
+/**
+  * @typedef {{ type: 'introduction', container: HTMLDivElement } | { type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codeblock', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement }} AIOverviewContentBlock
+  */
+
+class AIOverview {
+  /** @type {AIOverviewContentBlock[]} */
+  contentBlocks;
+
+  /** @returns {AIOverview | null} */
+  static fromDocument() {
+    const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
+    const display_contents = 'div[style="display: contents"]';
+
+    const overviewContainer =
+      document.querySelector(`${mcpr_main_col} > ${display_contents}`) ||
+      document.querySelector(`${mcpr_main_col}`);
+    if (overviewContainer === null) {
+      return null;
+    }
+
+    /** @type {AIOverviewContentBlock[]} */
+    let contentBlocks = [];
+    for (const c of overviewContainer.children) {
+      if (isInvisible(c)) continue;
+
+      if (isDiv(c)) {
+        if (isSfcCp(c)) {
+          contentBlocks.push({ type: 'introduction', container: c });
+
+        } else if (isBfc(c) && c.querySelector('div[role="heading"]') !== null) {
+          contentBlocks.push({ type: 'heading', container: c });
+
+        } else if (isBfc(c) && c.querySelector('pre > code') !== null) {
+          contentBlocks.push({ type: 'codeblock', container: c });
+
+        } else if (isBfc(c)) {
+          contentBlocks.push({ type: 'text', container: c });
+        }
+
+      } else if (isUl(c)) {
+        if (Array.from(c.children).every(x => isDiv(x) && isBfc(x))) {
+          contentBlocks.push({ type: 'list', container: c });
+        }
+      }
+    }
+
+    const ao = new AIOverview();
+    ao.contentBlocks = contentBlocks;
+    return ao;
+  }
+
+  /**
+    * @returns {Followup | null}
+    */
+  detectFollowup() {
+    const last4 = this.contentBlocks.at(-4);
+    const last3 = this.contentBlocks.at(-3);
+    const last2 = this.contentBlocks.at(-2);
+    const last1 = this.contentBlocks.at(-1);
+
+    if (
+      last2?.type === 'text' &&
+      last1?.type === 'list'
+    ) {
+      return {
+        type: 'text_with_list',
+        text: last2.container,
+        list: last1.container,
+      };
+
+    } else if (
+      (last4?.type !== 'heading') &&
+      last3?.type === 'text' &&
+      last2?.type === 'list' &&
+      last1?.type === 'text'
+    ) {
+      return {
+        type: 'texts_sandwitch_list',
+        head: last3.container,
+        list: last2.container,
+        tail: last1.container,
+      };
+
+    } else if (
+      last1?.type === 'text'
+    ) {
+      return {
+        type: 'single_text',
+        container: last1.container,
+      };
+
+    } else {
+      return null;
+    }
+  }
+}
 
 const mo = new MutationObserver(debouncedFnByMS(250, () => {
-  if (DONE) return;
+  const ao = AIOverview.fromDocument();
+  if (ao === null) return;
 
-  const fh = FollowupHandle.fromDocument();
-  if (fh === null) return;
+  const f = ao.detectFollowup();
+  if (f === null) return;
+  console.debug(`[forbid-google-ai-followup] detected: ${f.type}`);
 
-  console.debug(`[forbid-google-ai-followup] detected: ${fh.overviewState} ${fh.followup.type}`);
+  const fh = new FollowupHandler(f);
   fh.dumpElements();
-  
-  fh.removeFollowup();
+  fh.removeElements();
   console.log(`[forbid-google-ai-followup] removed: "${fh.textContent}"`);
 
-  DONE = true;
   mo.disconnect();
   console.debug('[forbid-google-ai-foloowup] successfully disconnected');
 }));

@@ -132,7 +132,7 @@ class FollowupHandler {
 }
 
 /**
-  * @typedef {{ type: 'introduction', container: HTMLDivElement } | { type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codeblock', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'introduction', container: HTMLDivElement } | { type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codesnippet', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement }} AIOverviewContentBlock
   */
 
 class AIOverview {
@@ -160,11 +160,14 @@ class AIOverview {
         if (isSfcCp(c)) {
           contentBlocks.push({ type: 'introduction', container: c });
 
-        } else if (isBfc(c) && c.querySelector('div[role="heading"]') !== null) {
+        } else if (isBfc(c) && (
+          c.getAttribute("role") === "heading" ||
+          c.querySelector('div[role="heading"]') !== null)
+        ) {
           contentBlocks.push({ type: 'heading', container: c });
 
         } else if (isBfc(c) && c.querySelector('pre > code') !== null) {
-          contentBlocks.push({ type: 'codeblock', container: c });
+          contentBlocks.push({ type: 'codesnippet', container: c });
 
         } else if (isBfc(c)) {
           contentBlocks.push({ type: 'text', container: c });
@@ -234,7 +237,7 @@ const mo = new MutationObserver(debouncedFnByMS(250, () => {
 
   const f = ao.detectFollowup();
   if (f === null) return;
-  console.debug(`[forbid-google-ai-followup] detected: ${f.type}`);
+  console.debug(`[forbid-google-ai-followup] detected ${f.type}-style followup`);
 
   const fh = new FollowupHandler(f);
   fh.dumpElements();

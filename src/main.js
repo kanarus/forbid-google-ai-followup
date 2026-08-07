@@ -35,6 +35,19 @@ function previousVisibleElementSibling(element) {
 }
 
 /**
+  * @param {number} delayMS
+  * @param {() => void} fn
+  * @returns {() => void}
+  */
+const debouncedFnByMS = (delayMS, fn) => {
+  let timeoutID;
+  return () => {
+    clearTimeout(timeoutID);
+    timeoutID = setTimeout(fn, delayMS);
+  };
+}
+
+/**
   * @typedef {'folded' | 'directlyfolded' | 'expanded' | 'directlyexpanded'} OverviewState
   */
 
@@ -259,7 +272,7 @@ class FollowupHandle {
 
 let DONE = false;
 
-const mo = new MutationObserver(() => {
+const mo = new MutationObserver(debouncedFnByMS(250, () => {
   if (DONE) return;
 
   const fh = FollowupHandle.fromDocument();
@@ -274,7 +287,7 @@ const mo = new MutationObserver(() => {
   DONE = true;
   mo.disconnect();
   console.debug('[forbid-google-ai-foloowup] successfully disconnected');
-});
+}));
 
 const startObservation = () => {
   if (!document.body) {

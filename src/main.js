@@ -231,7 +231,7 @@ class AIOverview {
   }
 }
 
-const mo = new MutationObserver(debouncedFnByMS(360, () => {
+const mo = new MutationObserver(debouncedFnByMS(365, () => {
   const ao = AIOverview.fromDocument();
   if (ao === null) return;
 

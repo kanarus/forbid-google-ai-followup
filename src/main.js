@@ -108,7 +108,8 @@ class FollowupHandle {
       element.tagName.toLowerCase() === "div" &&
       element.getAttribute("data-bfc") === "" &&
       (element.getAttribute("ahbak") === "true" || element.getAttribute("class") === "") &&
-      !(FollowupHandle.#isHeadingContainer(element))
+      !(FollowupHandle.#isHeadingContainer(element)) &&
+      !(FollowupHandle.#isCodeBlockContainer(element))
     );
   }
 
@@ -140,6 +141,18 @@ class FollowupHandle {
   }
 
   /**
+    * @param {Element | null} element
+    * @returns {boolean}
+    */
+  static #isCodeBlockContainer(element) {
+    return (
+      element !== null &&
+      element.tagName.toLowerCase() === "div" &&
+      element.querySelector('pre > code') !== null
+    );
+  }
+
+  /**
     * @param {OverviewState} os
     * @returns {FollowupHandle | null}
     */
@@ -162,7 +175,7 @@ class FollowupHandle {
     } else if (
       FollowupHandle.#isOuterList(prevVES) &&
       FollowupHandle.#canBeFollowupContainer(prevPrevVES) &&
-      !(FollowupHandle.#isHeadingContainer(prevPrevPrevVES))
+      !(FollowupHandle.#isHeadingContainer(prevPrevPrevVES) || FollowupHandle.#isCodeBlockContainer(prevPrevPrevVES))
       // If `prevPrevPrevVES` is a heading container,
       // it means the DOM structure is actually:
       //
@@ -179,6 +192,8 @@ class FollowupHandle {
       //
       // then only `lastMatch` will be the followup part,
       // while others are components of a essential overview section.
+      //
+      // Or, similar for case if `prevPrevPrevVES` is a code block container.
     ) {
       return new FollowupHandle(os, {
         type: 'sandwitch_outer_list',

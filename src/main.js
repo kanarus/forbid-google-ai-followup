@@ -35,42 +35,42 @@ function previousVisibleElementSibling(element) {
 }
 
 /**
-  * @typedef {'folded' | 'directlyfolded' | 'expanded' | 'directlyexpanded'} FollowupState
+  * @typedef {'folded' | 'directlyfolded' | 'expanded' | 'directlyexpanded'} OverviewState
   */
 
-/** @type {[FollowupState, FollowupState, FollowupState, FollowupState]} */
-const FOLLOWUP_STATES = ['folded', 'directlyfolded', 'expanded', 'directlyexpanded'];
+/** @type {[OverviewState, OverviewState, OverviewState, OverviewState]} */
+const OVERVIEW_STATES = ['folded', 'directlyfolded', 'expanded', 'directlyexpanded'];
 
 /**
-  * @typedef {{ type: 'single_container', container: HTMLDivElement } | { type: 'trailing_outer_list', container: HTMLDivElement, list: HTMLUListElement } | { type: 'sandwitch_outer_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} FollowupEnum
+  * @typedef {{ type: 'single_container', container: HTMLDivElement } | { type: 'trailing_outer_list', container: HTMLDivElement, list: HTMLUListElement } | { type: 'sandwitch_outer_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} Followup
   */
 
-class Followup {
-  /** @type {FollowupState} */
-  state;
-  /** @type {FollowupEnum} */
-  value;
+class FollowupHandle {
+  /** @type {OverviewState} */
+  overviewState;
+  /** @type {Followup} */
+  followup;
 
   /**
-    * @param {FollowupState} state
-    * @param {FollowupEnum} value
+    * @param {OverviewState} overviewState
+    * @param {Followup} followup
     */
-  constructor(state, value) {
-    this.state = state;
-    this.value = value;
+  constructor(overviewState, followup) {
+    this.overviewState = overviewState;
+    this.followup = followup;
   }
 
   /**
-    * @param {FollowupState} state
+    * @param {OverviewState} os
     * @returns {string}
     */
-  static #followupContainerSelector(state) {
+  static #followupContainerCandidatesSelector(os) {
     const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
     const display_contents = 'div[style="display: contents"]';
     const folded_followup_candidates = 'div[data-bfc=""][ahbak="true"]';
     const expanded_followup_candidates = 'div[data-bfc=""][class=""]';
 
-    switch (state) {
+    switch (os) {
       case "folded":
         return `${mcpr_main_col} > ${display_contents} > ${folded_followup_candidates}`;
       case "directlyfolded":
@@ -80,7 +80,7 @@ class Followup {
       case "directlyexpanded":
         return `${mcpr_main_col} > ${expanded_followup_candidates}`;
       default:
-        /** @type {never} */ const _ = state;
+        /** @type {never} */ const _ = os;
         throw Error(_);
     }
   }
@@ -90,13 +90,12 @@ class Followup {
     * @returns {boolean}
     */
   static #canBeFollowupContainer(element) {
-    const it = element;
     return (
-      it !== null &&
-      it.tagName.toLowerCase() === "div" &&
-      it.getAttribute("data-bfc") === "" &&
-      (it.getAttribute("ahbak") === "true" || it.getAttribute("class") === "") &&
-      !(Followup.#isHeadingContainer(it))
+      element !== null &&
+      element.tagName.toLowerCase() === "div" &&
+      element.getAttribute("data-bfc") === "" &&
+      (element.getAttribute("ahbak") === "true" || element.getAttribute("class") === "") &&
+      !(FollowupHandle.#isHeadingContainer(element))
     );
   }
 
@@ -128,11 +127,11 @@ class Followup {
   }
 
   /**
-    * @param {FollowupState} state
-    * @returns {Followup | null}
+    * @param {OverviewState} os
+    * @returns {FollowupHandle | null}
     */
-  static detectWhere(state) {
-    const lastMatch = queryLastMatch(Followup.#followupContainerSelector(state));
+  static fromDocumentWhere(os) {
+    const lastMatch = queryLastMatch(FollowupHandle.#followupContainerCandidatesSelector(os));
     if (lastMatch === null) {
       return null;
     }
@@ -141,19 +140,18 @@ class Followup {
     const prevVES = previousVisibleElementSibling(lastMatch);
     const prevPrevVES = previousVisibleElementSibling(prevVES);
     const prevPrevPrevVES = previousVisibleElementSibling(prevPrevVES);
-    if (Followup.#isOuterList(nextVES)) {
-      return new Followup(state, {
+    if (FollowupHandle.#isOuterList(nextVES)) {
+      return new FollowupHandle(os, {
         type: 'trailing_outer_list',
         container: lastMatch,
         list: nextVES,
       });
-
     } else if (
-      Followup.#isOuterList(prevVES) &&
-      Followup.#canBeFollowupContainer(prevPrevVES) &&
-      !(Followup.#isHeadingContainer(prevPrevPrevVES))
+      FollowupHandle.#isOuterList(prevVES) &&
+      FollowupHandle.#canBeFollowupContainer(prevPrevVES) &&
+      !(FollowupHandle.#isHeadingContainer(prevPrevPrevVES))
       // If `prevPrevPrevVES` is a heading container,
-      // it means:
+      // it means the DOM structure is actually:
       //
       // ```md
       // ### prevPrevPrevVES
@@ -166,18 +164,17 @@ class Followup {
       // lastMatch
       // ```
       //
-      // then only `lastMatch` will be a followup,
-      // while others are components of a essential section.
+      // then only `lastMatch` will be the followup part,
+      // while others are components of a essential overview section.
     ) {
-      return new Followup(state, {
+      return new FollowupHandle(os, {
         type: 'sandwitch_outer_list',
         head: prevPrevVES,
         list: prevVES,
         tail: lastMatch,
       });
-
     } else {
-      return new Followup(state, {
+      return new FollowupHandle(os, {
         type: 'single_container',
         container: lastMatch,
       });
@@ -185,12 +182,12 @@ class Followup {
   }
 
   /**
-    * @returns {Followup | null}
+    * @returns {FollowupHandle | null}
     */
-  static detect() {
-    for (const state of FOLLOWUP_STATES) {
-      const dw = Followup.detectWhere(state);
-      if (dw !== null) return dw;
+  static fromDocument() {
+    for (const os of OVERVIEW_STATES) {
+      const fh = FollowupHandle.fromDocumentWhere(os);
+      if (fh !== null) return fh;
     }
     return null;
   }
@@ -199,22 +196,22 @@ class Followup {
     * NOTE: Maybe blocked in Chrome.
     * @returns {void}
     */
-  debuglog() {
-    switch (this.value.type) {
+  dumpElements() {
+    switch (this.followup.type) {
       case "single_container":
-        console.debug(this.value.container);
+        console.debug(this.followup.container);
         return;
       case "trailing_outer_list":
-        console.debug(this.value.container);
-        console.debug(this.value.list);
+        console.debug(this.followup.container);
+        console.debug(this.followup.list);
         return;
       case "sandwitch_outer_list":
-        console.debug(this.value.head);
-        console.debug(this.value.list);
-        console.debug(this.value.tail);
+        console.debug(this.followup.head);
+        console.debug(this.followup.list);
+        console.debug(this.followup.tail);
         return;
       default:
-        /** @type {never} */ const _ = this.value.type;
+        /** @type {never} */ const _ = this.followup.type;
         throw Error(_);
     }
   }
@@ -222,22 +219,22 @@ class Followup {
   /**
     * @returns {void}
     */
-  remove() {
-    switch (this.value.type) {
+  removeFollowup() {
+    switch (this.followup.type) {
       case "single_container":
-        this.value.container.style.display = "none";
+        this.followup.container.style.display = "none";
         return;
       case "trailing_outer_list":
-        this.value.container.style.display = "none";
-        this.value.list.style.display = "none";
+        this.followup.container.style.display = "none";
+        this.followup.list.style.display = "none";
         return;
       case "sandwitch_outer_list":
-        this.value.head.style.display = "none";
-        this.value.list.style.display = "none";
-        this.value.tail.style.display = "none";
+        this.followup.head.style.display = "none";
+        this.followup.list.style.display = "none";
+        this.followup.tail.style.display = "none";
         return;
       default:
-        /** @type {never} */ const _ = this.value.type;
+        /** @type {never} */ const _ = this.followup.type;
         throw Error(_);
     }
   }
@@ -246,15 +243,15 @@ class Followup {
     * @returns {string}
     */
   get textContent() {
-    switch (this.value.type) {
+    switch (this.followup.type) {
       case "single_container":
-        return this.value.container.textContent;
+        return this.followup.container.textContent;
       case "trailing_outer_list":
-        return this.value.container.textContent + this.value.list.textContent;
+        return this.followup.container.textContent + this.followup.list.textContent;
       case "sandwitch_outer_list":
-        return this.value.head.textContent + this.value.list.textContent + this.value.tail.textContent;
+        return this.followup.head.textContent + this.followup.list.textContent + this.followup.tail.textContent;
       default:
-        /** @type {never} */ const _ = this.value.type;
+        /** @type {never} */ const _ = this.followup.type;
         throw Error(_);
     }
   }
@@ -262,20 +259,20 @@ class Followup {
 
 let DONE = false;
 
-const observer = new MutationObserver(() => {
+const mo = new MutationObserver(() => {
   if (DONE) return;
 
-  const followup = Followup.detect();
-  if (followup === null) return;
+  const fh = FollowupHandle.fromDocument();
+  if (fh === null) return;
 
-  console.debug(`[forbid-google-ai-followup] detected: ${followup.state} ${followup.value.type}`);
-  followup.debuglog();
+  console.debug(`[forbid-google-ai-followup] detected: ${fh.overviewState} ${fh.followup.type}`);
+  fh.dumpElements();
   
-  followup.remove();
-  console.log(`[forbid-google-ai-followup] removed: "${followup.textContent}"`);
+  fh.removeFollowup();
+  console.log(`[forbid-google-ai-followup] removed: "${fh.textContent}"`);
 
   DONE = true;
-  observer.disconnect();
+  mo.disconnect();
   console.debug('[forbid-google-ai-foloowup] successfully disconnected');
 });
 
@@ -283,7 +280,7 @@ const startObservation = () => {
   if (!document.body) {
     return requestAnimationFrame(startObservation);
   }
-  observer.observe(document.body, {
+  mo.observe(document.body, {
     childList: true,
     subtree: true,
   });

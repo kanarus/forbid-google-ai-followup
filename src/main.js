@@ -70,7 +70,8 @@ class FollowupHandler {
   }
 
   /**
-    * NOTE: Maybe blocked in Chrome.
+    *
+    * NOTE: This may be blocked in Chrome.
     *
     * @returns {void}
     */
@@ -126,7 +127,26 @@ class AIOverview {
   /** @type {AIOverviewContentBlock[]} */
   contentBlocks;
 
-  /** @returns {AIOverview | null} */
+  /**
+    * @param {AIOverviewContentBlock[]} contentBlocks
+    * @returns {AIOverview}
+    */
+  constructor(contentBlocks) {
+    this.contentBlocks = contentBlocks;
+  }
+
+  /** @returns {boolean} */
+  static streamingIsComplete() {
+    return document.querySelector('[data-type="hovc"]') !== null;
+  }
+
+  /**
+    *
+    * For performance optimization, this should be called
+    * after `AIOverview.streamingIsComplete` returned `true`.
+    *
+    * @returns {AIOverview | null}
+    */
   static fromDocument() {
     const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
     const display_contents = 'div[style="display: contents"]';
@@ -167,9 +187,7 @@ class AIOverview {
       }
     }
 
-    const ao = new AIOverview();
-    ao.contentBlocks = contentBlocks;
-    return ao;
+    return new AIOverview(contentBlocks);
   }
 
   /**
@@ -205,6 +223,7 @@ class AIOverview {
       };
 
     } else if (
+      (last2?.type !== 'heading') &&
       last1?.type === 'text'
     ) {
       return {
@@ -218,20 +237,9 @@ class AIOverview {
   }
 }
 
-/**
-  * @param {number} delayMS
-  * @param {() => void} fn
-  * @returns {() => void}
-  */
-const debouncedFnByMS = (delayMS, fn) => {
-  let timeoutID;
-  return () => {
-    clearTimeout(timeoutID);
-    timeoutID = setTimeout(fn, delayMS);
-  };
-}
+const mo = new MutationObserver(() => {
+  if (!AIOverview.streamingIsComplete()) return;
 
-const mo = new MutationObserver(debouncedFnByMS(365, () => {
   const ao = AIOverview.fromDocument();
   if (ao === null) return;
 
@@ -246,7 +254,7 @@ const mo = new MutationObserver(debouncedFnByMS(365, () => {
 
   mo.disconnect();
   console.debug('[forbid-google-ai-followup] successfully disconnected');
-}));
+});
 
 const startObservation = () => {
   if (!document.body) {

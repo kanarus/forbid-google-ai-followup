@@ -245,7 +245,7 @@ const mo = new MutationObserver(debouncedFnByMS(365, () => {
   console.log(`[forbid-google-ai-followup] removed: "${fh.textContent}"`);
 
   mo.disconnect();
-  console.debug('[forbid-google-ai-foloowup] successfully disconnected');
+  console.debug('[forbid-google-ai-followup] successfully disconnected');
 }));
 
 const startObservation = () => {

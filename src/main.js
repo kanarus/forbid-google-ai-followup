@@ -43,7 +43,7 @@ function isInvisible(element) {
 }
 
 /**
-  * @typedef {{ type: 'single_text', container: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} Followup
+  * @typedef {{ type: 'single_text', container: HTMLDivElement } | { type: 'composite_block', container: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} Followup
   */
 
 class FollowupHandler {
@@ -58,6 +58,8 @@ class FollowupHandler {
   get textContent() {
     switch (this.followup.type) {
       case "single_text":
+        return this.followup.container.textContent;
+      case "composite_block":
         return this.followup.container.textContent;
       case "text_with_list":
         return this.followup.text.textContent + this.followup.list.textContent;
@@ -78,6 +80,9 @@ class FollowupHandler {
   dumpElements() {
     switch (this.followup.type) {
       case "single_text":
+        console.debug(this.followup.container);
+        return;
+      case "composite_block":
         console.debug(this.followup.container);
         return;
       case "text_with_list":
@@ -103,6 +108,9 @@ class FollowupHandler {
       case "single_text":
         this.followup.container.style.display = "none";
         return;
+      case "composite_block":
+        this.followup.container.style.display = "none";
+        return;
       case "text_with_list":
         this.followup.text.style.display = "none";
         this.followup.list.style.display = "none";
@@ -120,7 +128,7 @@ class FollowupHandler {
 }
 
 /**
-  * @typedef {{ type: 'introduction', container: HTMLDivElement } | { type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codesnippet', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codesnippet', container: HTMLDivElement } | { type: 'composite', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement }} AIOverviewContentBlock
   */
 
 class AIOverview {
@@ -140,6 +148,22 @@ class AIOverview {
     return document.querySelector('[data-type="hovc"]') !== null;
   }
 
+  /** @returns {Element | null} */
+  static #detectContainerFromDocument() {
+    const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
+    const display_contents = 'div[style="display: contents"]';
+
+    for (const candidateSelector of [
+      `${mcpr_main_col} > ${display_contents}`,
+      `${mcpr_main_col}`,
+    ]) {
+      const candidate = document.querySelector(candidateSelector);
+      if (candidate !== null && !isInvisible(candidate)) return candidate;
+    }
+
+    return null;
+  }
+
   /**
     *
     * For performance optimization, this should be called
@@ -148,46 +172,49 @@ class AIOverview {
     * @returns {AIOverview | null}
     */
   static fromDocument() {
-    const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
-    const display_contents = 'div[style="display: contents"]';
-
-    const overviewContainer =
-      document.querySelector(`${mcpr_main_col} > ${display_contents}`) ||
-      document.querySelector(`${mcpr_main_col}`);
+    const overviewContainer = AIOverview.#detectContainerFromDocument();
     if (overviewContainer === null) {
       return null;
     }
 
     /** @type {AIOverviewContentBlock[]} */
     let contentBlocks = [];
-    for (const c of overviewContainer.children) {
-      if (isInvisible(c)) continue;
+    for (const container of overviewContainer.children) {
+      if (isInvisible(container)) continue;
 
-      if (isDiv(c)) {
-        if (isSfcCp(c)) {
-          contentBlocks.push({ type: 'introduction', container: c });
-
-        } else if (isBfc(c) && (
-          c.getAttribute("role") === "heading" ||
-          c.querySelector('div[role="heading"]') !== null)
+      if (isDiv(container) && (isSfcCp(container) || isBfc(container))) {
+        if (
+          container.getAttribute("role") === "heading" ||
+          container.querySelector('div[role="heading"]') !== null
         ) {
-          contentBlocks.push({ type: 'heading', container: c });
+          contentBlocks.push({ type: 'heading', container });
 
-        } else if (isBfc(c) && c.querySelector('pre > code') !== null) {
-          contentBlocks.push({ type: 'codesnippet', container: c });
+        } else if (container.querySelector('pre > code') !== null) {
+          contentBlocks.push({ type: 'codesnippet', container });
 
-        } else if (isBfc(c)) {
-          contentBlocks.push({ type: 'text', container: c });
+        } else if (container.querySelector('ul') !== null) {
+          contentBlocks.push({ type: 'composite', container });
+
+        } else {
+          contentBlocks.push({ type: 'text', container });
         }
 
-      } else if (isUl(c)) {
-        if (Array.from(c.children).every(x => isDiv(x) && isBfc(x))) {
-          contentBlocks.push({ type: 'list', container: c });
+      } else if (isUl(container)) {
+        if (Array.from(container.children).every(x => isDiv(x) && isBfc(x))) {
+          contentBlocks.push({ type: 'list', container });
         }
       }
     }
 
     return new AIOverview(contentBlocks);
+  }
+
+  dumpBlocks() {
+    console.debug(`AI overview contents (${this.contentBlocks.length}):`);
+    for (const contentBlock of this.contentBlocks) {
+      console.debug(`type: ${contentBlock.type}`)
+      console.debug(contentBlock.container)
+    }
   }
 
   /**
@@ -224,6 +251,15 @@ class AIOverview {
 
     } else if (
       (last2?.type !== 'heading') &&
+      last1?.type === 'composite'
+    ) {
+      return {
+        type: 'composite_block',
+        container: last1.container,
+      };
+
+    } else if (
+      (last2?.type !== 'heading') &&
       last1?.type === 'text'
     ) {
       return {
@@ -241,19 +277,26 @@ const mo = new MutationObserver(() => {
   if (!AIOverview.streamingIsComplete()) return;
 
   const ao = AIOverview.fromDocument();
-  if (ao === null) return;
+  if (ao === null) {
+    console.debug(`[forbid-google-ai-followup] AI overview seems not generated`);
+    mo.disconnect();
+    return;
+  }
 
   const f = ao.detectFollowup();
-  if (f === null) return;
-  console.debug(`[forbid-google-ai-followup] detected ${f.type}-style followup`);
+  if (f === null) {
+    console.debug(`[forbid-google-ai-followup] AI overview seems not containing followup`);
+    ao.dumpBlocks();
+    mo.disconnect();
+    return;
+  }
 
+  console.debug(`[forbid-google-ai-followup] detected ${f.type}-style followup`);
   const fh = new FollowupHandler(f);
   fh.dumpElements();
   fh.removeElements();
-  console.log(`[forbid-google-ai-followup] removed: "${fh.textContent}"`);
-
   mo.disconnect();
-  console.debug('[forbid-google-ai-followup] successfully disconnected');
+  console.log(`[forbid-google-ai-followup] removed: "${fh.textContent}"`);
 });
 
 const startObservation = () => {

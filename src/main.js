@@ -1,17 +1,4 @@
 /**
-  * @param {number} delayMS
-  * @param {() => void} fn
-  * @returns {() => void}
-  */
-const debouncedFnByMS = (delayMS, fn) => {
-  let timeoutID;
-  return () => {
-    clearTimeout(timeoutID);
-    timeoutID = setTimeout(fn, delayMS);
-  };
-}
-
-/**
   * @param {Element} element
   * @returns {element is HTMLDivElement}
   */
@@ -229,6 +216,19 @@ class AIOverview {
       return null;
     }
   }
+}
+
+/**
+  * @param {number} delayMS
+  * @param {() => void} fn
+  * @returns {() => void}
+  */
+const debouncedFnByMS = (delayMS, fn) => {
+  let timeoutID;
+  return () => {
+    clearTimeout(timeoutID);
+    timeoutID = setTimeout(fn, delayMS);
+  };
 }
 
 const mo = new MutationObserver(debouncedFnByMS(365, () => {

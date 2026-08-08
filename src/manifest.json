@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Forbid Google AI Followup",
-  "version": "0.5.0",
-  "description": "Forbid followup at the end of AI overview in Google search.",
+  "version": "0.5.1",
+  "description": "Forbids followup at the end of AI overview in Google search.",
   "content_scripts": [
     {
       "matches": ["*://www.google.com/search*"],

@@ -58,7 +58,7 @@
               web-ext build \
                 --source-dir "$FLAKE_ROOT/src" \
                 --artifacts-dir "$FLAKE_ROOT/dist" \
-                --overwrite-dest
+                --overwrite-dest || :
               run postbuild
             '';
           };
@@ -68,7 +68,7 @@
               run prebuild
               web-ext build \
                 --source-dir "$FLAKE_ROOT/src" \
-                --artifacts-dir "$FLAKE_ROOT/dist"
+                --artifacts-dir "$FLAKE_ROOT/dist" || :
               run postbuild
             '';
           };

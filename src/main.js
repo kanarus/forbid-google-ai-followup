@@ -7,10 +7,11 @@ function isDiv(element) {
 }
 /**
   * @param {Element} element
-  * @returns {element is HTMLUListElement}
+  * @returns {element is HTMLUListElement | HTMLOListElement}
   */
-function isUl(element) {
-  return element.tagName.toLowerCase() === "ul";
+function isList(element) {
+  const tagname = element.tagName.toLowerCase();
+  return (tagname === "ul" || tagname === "ol");
 }
 
 /**
@@ -26,6 +27,13 @@ function isSfcCp(element) {
   */
 function isBfc(element) {
   return element.getAttribute("data-bfc") === "";
+}
+/**
+  * @param {HTMLElement} element
+  * @returns {boolean}
+  */
+function isDisplayContents(element) {
+  return element.style.display === "contents";
 }
 
 /**
@@ -43,7 +51,7 @@ function isInvisible(element) {
 }
 
 /**
-  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement, tail: HTMLDivElement }} Followup
+  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement }} Followup
   */
 
 class FollowupHandler {
@@ -127,7 +135,7 @@ class FollowupHandler {
 
 /**
   * @typedef {{ type: 'direct_maincol', element: HTMLDivElement } | { type: 'display_content', element: HTMLDivElement }} AIOverviewContainer
-  * @typedef {{ type: 'text', element: HTMLDivElement } | { type: 'heading', element: HTMLDivElement } | { type: 'codesnippet', element: HTMLDivElement } | { type: 'composite', element: HTMLDivElement } | { type: 'list', element: HTMLUListElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'text', element: HTMLDivElement } | { type: 'heading', element: HTMLDivElement } | { type: 'codesnippet', element: HTMLDivElement } | { type: 'composite', element: HTMLDivElement } | { type: 'list', element: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
   */
 
 class AIOverview {
@@ -187,27 +195,37 @@ class AIOverview {
     /** @type {AIOverviewContentBlock[]} */
     let contentBlocks = [];
     for (const element of container.element.children) {
-      if (isInvisible(element)) continue;
+      if (isInvisible(element)) {
+        continue;
+      }
 
-      if (isDiv(element) && (isSfcCp(element) || isBfc(element))) {
-        if (
-          element.getAttribute("role") === "heading" ||
-          element.querySelector('div[role="heading"]') !== null
-        ) {
-          contentBlocks.push({ type: 'heading', element });
+      if (isDiv(element)) {
+        if (isSfcCp(element) || isBfc(element)) {
+          if (
+            element.getAttribute("role") === "heading" ||
+            element.querySelector('div[role="heading"]') !== null
+          ) {
+            contentBlocks.push({ type: 'heading', element });
 
-        } else if (element.querySelector('pre > code') !== null) {
-          contentBlocks.push({ type: 'codesnippet', element });
+          } else if (element.querySelector('pre > code') !== null) {
+            contentBlocks.push({ type: 'codesnippet', element });
 
-        } else if (element.querySelector('ul') !== null) {
-          contentBlocks.push({ type: 'composite', element });
+          } else {
+            contentBlocks.push({ type: 'text', element });
+          }
 
-        } else {
-          contentBlocks.push({ type: 'text', element });
+        } else if (isSfcCp(element) || isBfc(element) || isDisplayContents(element)) {
+          if ((element.querySelector('ul') !== null) || element.querySelector('ol') !== null) {
+            contentBlocks.push({ type: 'composite', element });
+          }
         }
 
-      } else if (isUl(element)) {
-        if (Array.from(element.children).every(x => isDiv(x) && isBfc(x))) {
+      } else if (isList(element)) {
+        if (
+          Array.from(element.children)
+            .filter(x => !isInvisible(x))
+            .every(x => isDiv(x) && (isSfcCp(x) || isBfc(x) || isDisplayContents(x)))
+        ) {
           contentBlocks.push({ type: 'list', element });
         }
       }
@@ -287,7 +305,7 @@ const mo = new MutationObserver(() => {
     mo.disconnect();
     return;
   }
-  console.debug(`[forbid-google-ai-followup] found AI overview built with ${ao.contentBlocks.length} blocks in ${ao.container.type} container`);
+  console.debug(`[forbid-google-ai-followup] found AI overview with ${ao.contentBlocks.length} blocks in ${ao.container.type} container`);
 
   const f = ao.detectFollowup();
   if (f === null) {

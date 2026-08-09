@@ -1,0 +1,18 @@
+{
+  "name": "tests",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "kanarus",
+  "type": "module",
+  "scripts": {
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "jsdom": "^30.0.1",
+    "oxfmt": "^0.62.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

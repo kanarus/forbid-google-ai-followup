@@ -22,15 +22,54 @@
         ];
         packages = [
           pkgs.web-ext
+          pkgs.nodejs
         ];
       };
       mission-control = {
         wrapperName = "run";
         scripts = {
+          "test" = {
+            description = "Run test";
+            exec = ''
+              cd "$FLAKE_ROOT/tests"
+              npm run test
+            '';
+          };
           "clean" = {
             description = "Clean up dist";
             exec = ''
               rm -rf "$FLAKE_ROOT/dist"
+            '';
+          };
+          "prebuild" = {
+            exec = ''
+              sed -i 's/export /\/*export*\//' src/main.js
+            '';
+          };
+          "postbuild" = {
+            exec = ''
+              sed -i 's/\/\*export\*\//export /' src/main.js
+            '';
+          };
+          "devbuild" = {
+            description = "Dev-build this web extension from src to dist, overwriting existing artifact of the same version.";
+            exec = ''
+              run prebuild
+              web-ext build \
+                --source-dir "$FLAKE_ROOT/src" \
+                --artifacts-dir "$FLAKE_ROOT/dist" \
+                --overwrite-dest
+              run postbuild
+            '';
+          };
+          "build" = {
+            description = "Production-build this web extension from src to dist. The same version of artifact MUST NOT already exists in dist.";
+            exec = ''
+              run prebuild
+              web-ext build \
+                --source-dir "$FLAKE_ROOT/src" \
+                --artifacts-dir "$FLAKE_ROOT/dist"
+              run postbuild
             '';
           };
           "build:android" = {
@@ -40,23 +79,6 @@
               sed -i "s/$VERSION/$VERSION.1/" src/manifest.json
               run build || :
               sed -i "s/$VERSION.1/$VERSION/" src/manifest.json
-            '';
-          };
-          "devbuild" = {
-            description = "Dev-build this web extension from src to dist, overwriting existing artifact of the same version.";
-            exec = ''
-              web-ext build \
-                --source-dir "$FLAKE_ROOT/src" \
-                --artifacts-dir "$FLAKE_ROOT/dist" \
-                --overwrite-dest
-            '';
-          };
-          "build" = {
-            description = "Production-build this web extension from src to dist. The same version of artifact MUST NOT already exists in dist.";
-            exec = ''
-              web-ext build \
-                --source-dir "$FLAKE_ROOT/src" \
-                --artifacts-dir "$FLAKE_ROOT/dist"
             '';
           };
         };

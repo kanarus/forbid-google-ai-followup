@@ -138,7 +138,7 @@ class FollowupHandler {
   * @typedef {{ type: 'text', element: HTMLDivElement } | { type: 'heading', element: HTMLDivElement } | { type: 'codesnippet', element: HTMLDivElement } | { type: 'composite', element: HTMLDivElement } | { type: 'list', element: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
   */
 
-class AIOverview {
+export class AIOverview {
   /** @type {AIOverviewContainer} */
   container;
   /** @type {AIOverviewContentBlock[]} */
@@ -159,9 +159,12 @@ class AIOverview {
     return document.querySelector('div[data-mcpr] div[data-type="hovc"]') !== null;
   }
 
-  /** @returns {AIOverviewContainer | null} */
-  static #detectContainerFromDocument() {
-    const mcprMainCol = document.querySelector('div[data-mcpr] div[data-container-id="main-col"]');
+  /**
+    * @param {Document} doc
+    * @returns {AIOverviewContainer | null}
+    */
+  static #detectContainerFromDocument(doc) {
+    const mcprMainCol = doc.querySelector('div[data-mcpr] div[data-container-id="main-col"]');
     if (mcprMainCol === null) return null;
 
     if (
@@ -184,10 +187,11 @@ class AIOverview {
     * For correct AI overview recognition, this SHOULD be called after
     * `AIOverview.streamingIsComplete` returned `true`.
     *
+    * @param {Document} doc
     * @returns {AIOverview | null}
     */
-  static fromDocument() {
-    const container = AIOverview.#detectContainerFromDocument();
+  static fromDocument(doc) {
+    const container = AIOverview.#detectContainerFromDocument(doc);
     if (container === null) {
       return null;
     }
@@ -201,11 +205,12 @@ class AIOverview {
     const pushAsContentBlocks = (element) => {
       if (isInvisible(element)) return;
 
-      if (element.querySelector('[data-viewer-group]') !== null) return;
-
       if (isDiv(element)) {
         if (isDisplayContents(element)) {
           Array.from(element.children).forEach(pushAsContentBlocks);
+
+        } else if (element.querySelector('[data-viewer-group]') !== null) {
+          return;
 
         } else if (isSfcCp(element) || isBfc(element)) {
           if (
@@ -307,7 +312,7 @@ class AIOverview {
 const mo = new MutationObserver(() => {
   if (!AIOverview.streamingIsComplete()) return;
 
-  const ao = AIOverview.fromDocument();
+  const ao = AIOverview.fromDocument(document);
   if (ao === null) {
     console.debug(`[forbid-google-ai-followup] AI overview seems not generated`);
     mo.disconnect();

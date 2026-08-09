@@ -1,0 +1,24 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "text",
+    "heading",
+    "text",
+    "codesnippet",
+    "list",
+    "heading",
+    "text",
+    "codesnippet",
+    "list",
+    "heading",
+    "text",
+    "codesnippet",
+    "heading",
+    "text",
+    "codesnippet",
+    "text",
+    "list",
+    "text"
+  ],
+  "followupTextContentFirstline": "If you want to use this value, tell me:"
+}

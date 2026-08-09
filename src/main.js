@@ -54,7 +54,7 @@ function isInvisible(element) {
   * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement }} Followup
   */
 
-class FollowupHandler {
+export class FollowupHandler {
   /** @type {Followup} */
   followup;
 

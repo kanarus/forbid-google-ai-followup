@@ -24,6 +24,10 @@
           pkgs.web-ext
           pkgs.nodejs
         ];
+        shellHook = ''
+          cd "$FLAKE_ROOT/tests"
+          npm install
+        '';
       };
       mission-control = {
         wrapperName = "run";
@@ -33,6 +37,13 @@
             exec = ''
               cd "$FLAKE_ROOT/tests"
               npm run test
+            '';
+          };
+          "fmt:testsamples" = {
+            description = "Formst tests/samples/*.html";
+            exec = ''
+              cd "$FLAKE_ROOT/tests"
+              npx oxfmt samples/**/*.html
             '';
           };
           "clean" = {

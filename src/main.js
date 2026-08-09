@@ -194,17 +194,20 @@ class AIOverview {
 
     /** @type {AIOverviewContentBlock[]} */
     let contentBlocks = [];
-    for (const element of container.element.children) {
-      if (isInvisible(element)) {
-        continue;
-      }
+    /**
+      * @param {Element} element
+      * @returns {void}
+      */
+    const pushAsContentBlocks = (element) => {
+      if (isInvisible(element)) return;
 
-      if (element.querySelector('[data-viewer-group]') !== null) {
-        continue;
-      }
+      if (element.querySelector('[data-viewer-group]') !== null) return;
 
       if (isDiv(element)) {
-        if (isSfcCp(element) || isBfc(element)) {
+        if (isDisplayContents(element)) {
+          Array.from(element.children).forEach(pushAsContentBlocks);
+
+        } else if (isSfcCp(element) || isBfc(element)) {
           if (
             element.getAttribute("role") === "heading" ||
             element.querySelector('div[role="heading"]') !== null
@@ -220,11 +223,7 @@ class AIOverview {
           } else {
             contentBlocks.push({ type: 'text', element });
           }
-
-        } else if (isDisplayContents(element)) {
-          contentBlocks.push({ type: 'composite', element });
         }
-
       } else if (isList(element)) {
         if (
           Array.from(element.children)
@@ -234,6 +233,10 @@ class AIOverview {
           contentBlocks.push({ type: 'list', element });
         }
       }
+    };
+
+    for (const element of container.element.children) {
+      pushAsContentBlocks(element);
     }
 
     return new AIOverview(container, contentBlocks);

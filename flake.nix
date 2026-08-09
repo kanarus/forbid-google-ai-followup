@@ -33,6 +33,15 @@
               rm -rf "$FLAKE_ROOT/dist"
             '';
           };
+          "build:android" = {
+            description = "Build for Firefox Android";
+            exec = ''
+              VERSION=$(awk 'match($0, /^\s*"version": "([0-9\.]+)",$/, m) { print m[1] }' src/manifest.json)
+              sed -i "s/$VERSION/$VERSION.1/" src/manifest.json
+              run build || :
+              sed -i "s/$VERSION.1/$VERSION/" src/manifest.json
+            '';
+          };
           "devbuild" = {
             description = "Dev-build this web extension from src to dist, overwriting existing artifact of the same version.";
             exec = ''

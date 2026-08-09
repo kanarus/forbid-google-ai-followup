@@ -127,6 +127,11 @@ class FollowupHandler {
   }
 }
 
+const mcpr = 'div[data-mcpr]'
+const main_col = 'div[data-container-id="main-col"]';
+const display_contents = 'div[style="display: contents"]';
+const hovc = 'div[data-type="hovc"]';
+
 /**
   * @typedef {{ type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codesnippet', container: HTMLDivElement } | { type: 'composite', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement }} AIOverviewContentBlock
   */
@@ -145,29 +150,25 @@ class AIOverview {
 
   /** @returns {boolean} */
   static streamingIsComplete() {
-    return document.querySelector('[data-type="hovc"]') !== null;
+    return document.querySelector(`${mcpr} ${hovc}`) !== null;
   }
 
   /** @returns {Element | null} */
   static #detectContainerFromDocument() {
-    const mcpr_main_col = 'div[data-mcpr] div[data-container-id="main-col"]';
-    const display_contents = 'div[style="display: contents"]';
-
     for (const candidateSelector of [
-      `${mcpr_main_col} > ${display_contents}`,
-      `${mcpr_main_col}`,
+      `${mcpr} ${main_col} > ${display_contents}`,
+      `${mcpr} ${main_col}`,
     ]) {
       const candidate = document.querySelector(candidateSelector);
-      if (candidate !== null && !isInvisible(candidate)) return candidate;
+      if ((candidate !== null) && (!isInvisible(candidate))) return candidate;
     }
-
     return null;
   }
 
   /**
     *
-    * For performance optimization, this should be called
-    * after `AIOverview.streamingIsComplete` returned `true`.
+    * For correct AI overview recognition, this SHOULD be called after
+    * `AIOverview.streamingIsComplete` returned `true`.
     *
     * @returns {AIOverview | null}
     */
@@ -290,13 +291,13 @@ const mo = new MutationObserver(() => {
     mo.disconnect();
     return;
   }
+  console.debug(`[forbid-google-ai-followup] detected ${f.type}-style followup from ${ao.contentBlocks.length} blocks`);
 
-  console.debug(`[forbid-google-ai-followup] detected ${f.type}-style followup`);
   const fh = new FollowupHandler(f);
   fh.dumpElements();
   fh.removeElements();
-  mo.disconnect();
   console.log(`[forbid-google-ai-followup] removed: "${fh.textContent}"`);
+  mo.disconnect();
 });
 
 const startObservation = () => {

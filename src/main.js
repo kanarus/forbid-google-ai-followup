@@ -199,6 +199,10 @@ class AIOverview {
         continue;
       }
 
+      if (element.querySelector('[data-viewer-group]') !== null) {
+        continue;
+      }
+
       if (isDiv(element)) {
         if (isSfcCp(element) || isBfc(element)) {
           if (
@@ -210,14 +214,15 @@ class AIOverview {
           } else if (element.querySelector('pre > code') !== null) {
             contentBlocks.push({ type: 'codesnippet', element });
 
+          } else if (element.querySelector('ul') !== null || element.querySelector('ol') !== null) {
+            contentBlocks.push({ type: 'composite', element });
+
           } else {
             contentBlocks.push({ type: 'text', element });
           }
 
-        } else if (isSfcCp(element) || isBfc(element) || isDisplayContents(element)) {
-          if ((element.querySelector('ul') !== null) || element.querySelector('ol') !== null) {
-            contentBlocks.push({ type: 'composite', element });
-          }
+        } else if (isDisplayContents(element)) {
+          contentBlocks.push({ type: 'composite', element });
         }
 
       } else if (isList(element)) {

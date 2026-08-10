@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
+  "author": "kanarus",
   "name": "Forbid Google AI Followup",
-  "version": "0.6.9",
+  "version": "0.6.10",
   "description": "Forbids followup at the end of AI overview in Google search.",
   "content_scripts": [
     {
@@ -15,7 +16,9 @@
       "id": "forbid-google-ai-followup@kanarus.dev",
       "data_collection_permissions": {
         "required": ["none"]
-      }
-    }
+      },
+      "strict_min_version": "108.0"
+    },
+    "gecko_android": {}
   }
 }

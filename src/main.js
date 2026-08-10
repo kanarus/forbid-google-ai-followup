@@ -406,7 +406,7 @@ const mo = new MutationObserver(() => {
   fh.dumpElements();
 
   try {
-    fh.removeFollowup();
+    fh.remove();
   } catch (err) {
     console.error(`[forbid-google-ai-followup] error on removal: ${err}`);
   }

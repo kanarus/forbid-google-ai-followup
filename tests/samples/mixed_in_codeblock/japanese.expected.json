@@ -1,0 +1,10 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "codeblock"
+  ],
+  "followupTextHead": "もし特定のタイミングでスクリプトが動かない、または要素が取得できないなどの問題があれば、"
+}

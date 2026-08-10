@@ -1,0 +1,16 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "heading",
+    "heading",
+    "codeblock"
+  ],
+  "followupTextHead": "もしよろしければ、以下を教えてください："
+}

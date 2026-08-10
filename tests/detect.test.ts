@@ -9,7 +9,10 @@ type ExpectedJSON = {
 
 const domParser = new DOMParser();
 
-const testForType = (t: Followup['type']) => {
+const testForType = (
+  t: Followup['type'],
+  specialTest?: (ao: AIOverview, fh: FollowupHandler, baseErrorMessage: string) => void,
+) => {
   for (const sample of readdirSync(`samples/${t}`)
     .filter(filename => filename.endsWith(".html"))
     .map(html_filename => html_filename.replace(".html", ""))
@@ -29,10 +32,12 @@ const testForType = (t: Followup['type']) => {
     const f = ao.detectFollowup();
     assert(f !== null, MESSAGE);
     const fh = new FollowupHandler(f);
+
     expect(fh.followup.type, MESSAGE).toEqual(t);
     assert(expected.followupTextHead.length > 0, MESSAGE + ": empty followupTextHead snapshot (maybe forgot to fill in)");
-    expect(fh.textContent.trim().slice(0, expected.followupTextHead.length), MESSAGE)
-      .toEqual(expected.followupTextHead);
+    expect(fh.textContent.trim(), MESSAGE).toMatch(expected.followupTextHead);
+
+    specialTest?.(ao, fh, MESSAGE);
   }
 };
 
@@ -47,4 +52,13 @@ test('Document -> AIOverview -> Followup detection correctness [text_with_list]'
 });
 test('Document -> AIOverview -> Followup detection correctness [texts_sandwitch_list]', () => {
   testForType('texts_sandwitch_list');
+});
+test('Document -> AIOverview -> Followup detection correctness [mixed_in_codeblock]', () => {
+  testForType('mixed_in_codeblock', (ao, fh, e) => {
+    expect(ao.container.element.textContent, e).toMatch("<FollowUp>");
+    expect(fh.textContent, e).not.toMatch("<FollowUp>");
+    fh.removeElements();
+    expect(ao.container.element.textContent, e).not.toMatch("<FollowUp>");
+    expect(ao.container.element.textContent.trimEnd(), e).not.toMatch(/`$/);
+  });
 });

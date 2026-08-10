@@ -13,6 +13,21 @@ function isList(element) {
   const tagname = element.tagName.toLowerCase();
   return (tagname === "ul" || tagname === "ol");
 }
+/**
+  * @param {Element} element
+  * @returns {element is HTMLSpanElement}
+  */
+function isSpan(element) {
+  return element.tagName.toLowerCase() === "span";
+}
+/** @typedef {HTMLElement} HTMLCodeElement */
+/**
+  * @param {Element} element
+  * @returns {element is HTMLCodeElement}
+  */
+function isCode(element) {
+  return element.tagName.toLowerCase() === "code";
+}
 
 /**
   * @param {Element} element
@@ -64,7 +79,7 @@ function containsAttributeAsContainer(containerElement, key, value) {
 }
 
 /**
-  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement }} Followup
+  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement } | { type: 'mixed_in_codeblock', codeblock: HTMLCodeElement }} Followup
   */
 
 export class FollowupHandler {
@@ -86,6 +101,11 @@ export class FollowupHandler {
         return this.followup.text.textContent + this.followup.list.textContent;
       case "texts_sandwitch_list":
         return this.followup.head.textContent + this.followup.list.textContent + this.followup.tail.textContent;
+      case "mixed_in_codeblock":
+        return (this.followup.codeblock.textContent
+          .split("\n").join("")
+          .match(/<FollowUp>(.*)<\/FollowUp>/)?.at(1)
+        || "").split("\n").join("").trim();
       default:
         /** @type {never} */ const _ = this.followup.type;
         throw new Error(_);
@@ -115,13 +135,19 @@ export class FollowupHandler {
         console.debug(this.followup.list);
         console.debug(this.followup.tail);
         return;
+      case "mixed_in_codeblock":
+        console.debug(this.followup.codeblock);
+        return;
       default:
         /** @type {never} */ const _ = this.followup.type;
         throw new Error(_);
     }
   }
 
-  /** @returns {void} */
+  /**
+    * @returns {void}
+    * @throws {Error}
+    */
   removeElements() {
     switch (this.followup.type) {
       case "single_text":
@@ -139,6 +165,33 @@ export class FollowupHandler {
         this.followup.list.style.display = "none";
         this.followup.tail.style.display = "none";
         return;
+      case "mixed_in_codeblock": {
+        const codefragments = Array.from(this.followup.codeblock.children);
+        if (!(codefragments.length > 0 && codefragments.every(isSpan))) {
+          throw new Error('unexpected codeblock structure');
+        }
+
+        const finalspan = codefragments[codefragments.length - 1];
+        finalspan.textContent = finalspan.textContent
+          .replace(/<FollowUp>.*<\/FollowUp>/s)
+          .trimEnd();
+
+        let [searchIndex, numRemainingBackquotes] = [codefragments.length - 1, 3];
+        while (numRemainingBackquotes > 0) {
+          const maybeBackquoteOwner = codefragments[searchIndex];
+          if (maybeBackquoteOwner.textContent.endsWith('`')) {
+            numRemainingBackquotes -= 1;
+            maybeBackquoteOwner.textContent = maybeBackquoteOwner.textContent
+              .slice(0, maybeBackquoteOwner.textContent.length - 1)
+              .trimEnd();
+          } else {
+            if (searchIndex === 0) throw new Error('unexpected codeblock contents');
+            searchIndex -= 1;
+          }
+        }
+
+        return;
+      }
       default:
         /** @type {never} */ const _ = this.followup.type;
         throw new Error(_);
@@ -148,22 +201,22 @@ export class FollowupHandler {
 
 /**
   * @typedef {{ type: 'direct_maincol', element: HTMLDivElement } | { type: 'display_content', element: HTMLDivElement }} AIOverviewContainer
-  * @typedef {{ type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codesnippet', container: HTMLDivElement } | { type: 'composite', container: HTMLDivElement } | { type: 'blockquote', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'text', block: HTMLDivElement } | { type: 'heading', block: HTMLDivElement } | { type: 'codeblock', block: HTMLDivElement } | { type: 'composite', block: HTMLDivElement } | { type: 'blockquote', block: HTMLDivElement } | { type: 'list', block: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
   */
 
 export class AIOverview {
   /** @type {AIOverviewContainer} */
-  overviewContainer;
+  container;
   /** @type {AIOverviewContentBlock[]} */
   contentBlocks;
 
   /**
-    * @param {AIOverviewContainer} overviewContainer
+    * @param {AIOverviewContainer} container
     * @param {AIOverviewContentBlock[]} contentBlocks
     * @returns {AIOverview}
     */
-  constructor(overviewContainer, contentBlocks) {
-    this.overviewContainer = overviewContainer;
+  constructor(container, contentBlocks) {
+    this.container = container;
     this.contentBlocks = contentBlocks;
   }
 
@@ -204,71 +257,71 @@ export class AIOverview {
     * @returns {AIOverview | null}
     */
   static fromDocument(doc) {
-    const overviewContainer = AIOverview.#detectContainerFromDocument(doc);
-    if (overviewContainer === null) {
+    const container = AIOverview.#detectContainerFromDocument(doc);
+    if (container === null) {
       return null;
     }
 
     /** @type {AIOverviewContentBlock[]} */
     let contentBlocks = [];
     /**
-      * @param {Element} container
+      * @param {Element} block
       * @returns {void}
       */
-    const recognizeContentBlock = (container) => {
-      if (isInvisible(container)) return;
+    const recognizeContentBlock = (block) => {
+      if (isInvisible(block)) return;
 
-      if (isDiv(container)) {
-        if (isDisplayContents(container)) {
-          Array.from(container.children).forEach(recognizeContentBlock);
+      if (isDiv(block)) {
+        if (isDisplayContents(block)) {
+          Array.from(block.children).forEach(recognizeContentBlock);
 
-        } else if (container.querySelector('[data-viewer-group]') !== null) {
+        } else if (block.querySelector('[data-viewer-group]') !== null) {
           return;
 
-        } else if (containsAttributeAsContainer(container, "data-type", "hovc")) {
+        } else if (containsAttributeAsContainer(block, "data-type", "hovc")) {
           return;
 
-        } else if (isSfcCp(container) || isBfc(container)) {
-          if (containsAttributeAsContainer(container, "role", "heading")) {
-            contentBlocks.push({ type: 'heading', container });
+        } else if (isSfcCp(block) || isBfc(block)) {
+          if (containsAttributeAsContainer(block, "role", "heading")) {
+            contentBlocks.push({ type: 'heading', block });
 
-          } else if (container.querySelector('pre > code') !== null) {
-            contentBlocks.push({ type: 'codesnippet', container });
+          } else if (block.querySelector('pre > code') !== null) {
+            contentBlocks.push({ type: 'codeblock', block });
 
-          } else if (container.querySelector('blockquote') !== null) {
-            contentBlocks.push({ type: 'blockquote', container });
+          } else if (block.querySelector('blockquote') !== null) {
+            contentBlocks.push({ type: 'blockquote', block });
 
-          } else if (container.querySelector('ul') !== null || container.querySelector('ol') !== null) {
-            contentBlocks.push({ type: 'composite', container });
+          } else if (block.querySelector('ul') !== null || block.querySelector('ol') !== null) {
+            contentBlocks.push({ type: 'composite', block });
 
           } else {
-            contentBlocks.push({ type: 'text', container });
+            contentBlocks.push({ type: 'text', block });
           }
         }
 
-      } else if (isList(container)) {
+      } else if (isList(block)) {
         if (
-          Array.from(container.children)
+          Array.from(block.children)
             .filter(x => !isInvisible(x))
             .every(x => isDiv(x) && (isSfcCp(x) || isBfc(x) || isDisplayContents(x)))
         ) {
-          contentBlocks.push({ type: 'list', container });
+          contentBlocks.push({ type: 'list', block });
         }
       }
     };
 
-    for (const container of overviewContainer.element.children) {
-      recognizeContentBlock(container);
+    for (const block of container.element.children) {
+      recognizeContentBlock(block);
     }
 
-    return new AIOverview(overviewContainer, contentBlocks);
+    return new AIOverview(container, contentBlocks);
   }
 
   dumpBlocks() {
     console.debug(`AI overview contents (${this.contentBlocks.length}):`);
     for (const contentBlock of this.contentBlocks) {
       console.debug(`type: ${contentBlock.type}`)
-      console.debug(contentBlock.container)
+      console.debug(contentBlock.block)
     }
   }
 
@@ -280,13 +333,22 @@ export class AIOverview {
     const last1 = this.contentBlocks.at(-1);
 
     if (
+       last1?.type === 'codeblock' &&
+       /<FollowUp>.*<\/FollowUp>/s.test(last1.block.querySelector('code').textContent)
+    ) {
+      return {
+        type: 'mixed_in_codeblock',
+        codeblock: last1.block,
+      };
+
+    } else if (
       last2?.type === 'text' &&
       last1?.type === 'list'
     ) {
       return {
         type: 'text_with_list',
-        text: last2.container,
-        list: last1.container,
+        text: last2.block,
+        list: last1.block,
       };
 
     } else if (
@@ -297,9 +359,9 @@ export class AIOverview {
     ) {
       return {
         type: 'texts_sandwitch_list',
-        head: last3.container,
-        list: last2.container,
-        tail: last1.container,
+        head: last3.block,
+        list: last2.block,
+        tail: last1.block,
       };
 
     } else if (
@@ -308,7 +370,7 @@ export class AIOverview {
     ) {
       return {
         type: 'composite_block',
-        element: last1.container,
+        element: last1.block,
       };
 
     } else if (
@@ -317,7 +379,7 @@ export class AIOverview {
     ) {
       return {
         type: 'single_text',
-        element: last1.container,
+        element: last1.block,
       };
 
     } else {
@@ -335,7 +397,7 @@ const mo = new MutationObserver(() => {
     mo.disconnect();
     return;
   }
-  console.debug(`[forbid-google-ai-followup] found AI overview with ${ao.contentBlocks.length} blocks in ${ao.overviewContainer.type} container`);
+  console.debug(`[forbid-google-ai-followup] found AI overview with ${ao.contentBlocks.length} blocks in ${ao.container.type} container`);
 
   const f = ao.detectFollowup();
   if (f === null) {
@@ -348,7 +410,12 @@ const mo = new MutationObserver(() => {
 
   const fh = new FollowupHandler(f);
   fh.dumpElements();
-  fh.removeElements();
+
+  try {
+    fh.removeElements();
+  } catch (err) {
+    console.error(`[forbid-google-ai-followup] error on removal: ${err}`);
+  }
   console.log(`[forbid-google-ai-followup] removed: "${fh.textContent}"`);
 
   mo.disconnect();

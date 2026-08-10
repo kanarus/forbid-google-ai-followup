@@ -20,14 +20,6 @@ function isList(element) {
 function isSpan(element) {
   return element.tagName.toLowerCase() === "span";
 }
-/** @typedef {HTMLElement} HTMLCodeElement */
-/**
-  * @param {Element} element
-  * @returns {element is HTMLCodeElement}
-  */
-function isCode(element) {
-  return element.tagName.toLowerCase() === "code";
-}
 
 /**
   * @param {Element} element
@@ -79,7 +71,7 @@ function containsAttributeAsContainer(containerElement, key, value) {
 }
 
 /**
-  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement } | { type: 'mixed_in_codeblock', codeblock: HTMLCodeElement }} Followup
+  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement } | { type: 'mixed_in_codeblock', codetag: HTMLElement }} Followup
   */
 
 export class FollowupHandler {
@@ -102,7 +94,7 @@ export class FollowupHandler {
       case "texts_sandwitch_list":
         return this.followup.head.textContent + this.followup.list.textContent + this.followup.tail.textContent;
       case "mixed_in_codeblock":
-        return (this.followup.codeblock.textContent
+        return (this.followup.codetag.textContent
           .split("\n").join("")
           .match(/<FollowUp>(.*)<\/FollowUp>/)?.at(1)
         || "").split("\n").join("").trim();
@@ -136,7 +128,7 @@ export class FollowupHandler {
         console.debug(this.followup.tail);
         return;
       case "mixed_in_codeblock":
-        console.debug(this.followup.codeblock);
+        console.debug(this.followup.codetag);
         return;
       default:
         /** @type {never} */ const _ = this.followup.type;
@@ -166,7 +158,7 @@ export class FollowupHandler {
         this.followup.tail.style.display = "none";
         return;
       case "mixed_in_codeblock": {
-        const codefragments = Array.from(this.followup.codeblock.children);
+        const codefragments = Array.from(this.followup.codetag.children);
         if (!(codefragments.length > 0 && codefragments.every(isSpan))) {
           console.debug(`codeblock children (${codefragments.length}):`);
           codefragments.forEach(console.debug);
@@ -340,7 +332,7 @@ export class AIOverview {
     ) {
       return {
         type: 'mixed_in_codeblock',
-        codeblock: last1.block.querySelector('code'),
+        codetag: last1.block.querySelector('code'),
       };
 
     } else if (

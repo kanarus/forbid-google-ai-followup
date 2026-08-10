@@ -317,7 +317,7 @@ export class AIOverview {
     ) {
       return {
         type: 'single_text',
-        element: last1.element,
+        element: last1.container,
       };
 
     } else {

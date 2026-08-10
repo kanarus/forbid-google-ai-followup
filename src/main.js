@@ -148,7 +148,7 @@ export class FollowupHandler {
     * @returns {void}
     * @throws {Error}
     */
-  removeElements() {
+  remove() {
     switch (this.followup.type) {
       case "single_text":
         this.followup.element.style.display = "none";
@@ -168,22 +168,24 @@ export class FollowupHandler {
       case "mixed_in_codeblock": {
         const codefragments = Array.from(this.followup.codeblock.children);
         if (!(codefragments.length > 0 && codefragments.every(isSpan))) {
+          console.debug(`codeblock children (${codefragments.length}):`);
+          codefragments.forEach(console.debug);
           throw new Error('unexpected codeblock structure');
         }
 
         const finalspan = codefragments[codefragments.length - 1];
         finalspan.textContent = finalspan.textContent
-          .replace(/<FollowUp>.*<\/FollowUp>/s)
+          .replace(/<FollowUp>.*<\/FollowUp>/s, "")
           .trimEnd();
 
         let [searchIndex, numRemainingBackquotes] = [codefragments.length - 1, 3];
         while (numRemainingBackquotes > 0) {
           const maybeBackquoteOwner = codefragments[searchIndex];
-          if (maybeBackquoteOwner.textContent.endsWith('`')) {
+          if (maybeBackquoteOwner.textContent.trimEnd().endsWith('`')) {
             numRemainingBackquotes -= 1;
             maybeBackquoteOwner.textContent = maybeBackquoteOwner.textContent
-              .slice(0, maybeBackquoteOwner.textContent.length - 1)
-              .trimEnd();
+              .trimEnd()
+              .slice(0, -1);
           } else {
             if (searchIndex === 0) throw new Error('unexpected codeblock contents');
             searchIndex -= 1;
@@ -338,7 +340,7 @@ export class AIOverview {
     ) {
       return {
         type: 'mixed_in_codeblock',
-        codeblock: last1.block,
+        codeblock: last1.block.querySelector('code'),
       };
 
     } else if (
@@ -412,7 +414,7 @@ const mo = new MutationObserver(() => {
   fh.dumpElements();
 
   try {
-    fh.removeElements();
+    fh.removeFollowup();
   } catch (err) {
     console.error(`[forbid-google-ai-followup] error on removal: ${err}`);
   }

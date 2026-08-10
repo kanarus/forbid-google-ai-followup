@@ -55,9 +55,9 @@ test('Document -> AIOverview -> Followup detection correctness [texts_sandwitch_
 });
 test('Document -> AIOverview -> Followup detection correctness [mixed_in_codeblock]', () => {
   testForType('mixed_in_codeblock', (ao, fh, e) => {
-    expect(ao.container.element.textContent, e).toMatch("<FollowUp>");
     expect(fh.textContent, e).not.toMatch("<FollowUp>");
-    fh.removeElements();
+    expect(ao.container.element.textContent, e).toMatch("<FollowUp>");
+    fh.remove();
     expect(ao.container.element.textContent, e).not.toMatch("<FollowUp>");
     expect(ao.container.element.textContent.trimEnd(), e).not.toMatch(/`$/);
   });

@@ -39,13 +39,6 @@
               npm run test
             '';
           };
-          "fmt:testsamples" = {
-            description = "Formst tests/samples/*.html";
-            exec = ''
-              cd "$FLAKE_ROOT/tests"
-              npx oxfmt samples/**/*.html
-            '';
-          };
           "clean" = {
             description = "Clean up dist";
             exec = ''
@@ -81,15 +74,6 @@
                 --source-dir "$FLAKE_ROOT/src" \
                 --artifacts-dir "$FLAKE_ROOT/dist" || :
               run postbuild
-            '';
-          };
-          "build:android" = {
-            description = "Build for Firefox Android";
-            exec = ''
-              VERSION=$(awk 'match($0, /^\s*"version": "([0-9\.]+)",$/, m) { print m[1] }' src/manifest.json)
-              sed -i "s/$VERSION/$VERSION.1/" src/manifest.json
-              run build || :
-              sed -i "s/$VERSION.1/$VERSION/" src/manifest.json
             '';
           };
         };

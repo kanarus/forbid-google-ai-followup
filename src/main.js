@@ -51,6 +51,19 @@ function isInvisible(element) {
 }
 
 /**
+  * @param {HTMLElement} containerElement
+  * @param {string} key
+  * @param {string | undefined} value
+  * @returns {boolean}
+  */
+function containsAttributeAsContainer(containerElement, key, value) {
+  return (
+    containerElement.getAttribute(key) === (value || "") ||
+    containerElement.querySelector(`[${key}="${value}"]`) !== null
+  );
+}
+
+/**
   * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement }} Followup
   */
 
@@ -212,11 +225,11 @@ export class AIOverview {
         } else if (element.querySelector('[data-viewer-group]') !== null) {
           return;
 
+        } else if (containsAttributeAsContainer(element, "data-type", "hovc")) {
+          return;
+
         } else if (isSfcCp(element) || isBfc(element)) {
-          if (
-            element.getAttribute("role") === "heading" ||
-            element.querySelector('div[role="heading"]') !== null
-          ) {
+          if (containsAttributeAsContainer(element, "role", "heading")) {
             contentBlocks.push({ type: 'heading', element });
 
           } else if (element.querySelector('pre > code') !== null) {

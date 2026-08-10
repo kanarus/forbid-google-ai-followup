@@ -18,5 +18,5 @@
     "list",
     "text"
   ],
-  "followupTextContentFirstline": "If you are trying to write a custom script or automate something specific, let me know:"
+  "followupTextHead": "If you are trying to write a custom script or automate something specific, let me know:"
 }

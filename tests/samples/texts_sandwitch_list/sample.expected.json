@@ -20,5 +20,5 @@
     "list",
     "text"
   ],
-  "followupTextContentFirstline": "If you want to use this value, tell me:"
+  "followupTextHead": "If you want to use this value, tell me:"
 }

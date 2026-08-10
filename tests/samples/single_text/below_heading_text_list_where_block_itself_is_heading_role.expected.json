@@ -1,4 +1,10 @@
 {
-  "contentBlockTypes": [],
-  "followupTextContentFirstline": ""
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "text",
+    "list",
+    "text"
+  ],
+  "followupTextHead": "If you need help utilizing these paths further, let me know if you want to"
 }

@@ -1,4 +1,20 @@
 {
-  "contentBlockTypes": [],
-  "followupTextContentFirstline": ""
+  "contentBlockTypes": [
+    "text",
+    "text",
+    "heading",
+    "text",
+    "codesnippet",
+    "heading",
+    "text",
+    "codesnippet",
+    "heading",
+    "text",
+    "codesnippet",
+    "text",
+    "codesnippet",
+    "text",
+    "list"
+  ],
+  "followupTextHead": "If you want to perform a specific action with this directory path, let me know if you need to:"
 }

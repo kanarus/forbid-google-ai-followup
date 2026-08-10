@@ -1,4 +1,16 @@
 {
-  "contentBlockTypes": [],
-  "followupTextContentFirstline": ""
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "text",
+    "list",
+    "heading",
+    "text",
+    "codesnippet",
+    "list",
+    "text"
+  ],
+  "followupTextHead": "If you need to change Neovim's directory dynamically later in your config, what"
 }

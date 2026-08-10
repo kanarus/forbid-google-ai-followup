@@ -1,4 +1,11 @@
 {
-  "contentBlockTypes": [],
-  "followupTextContentFirstline": ""
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "composite"
+  ],
+  "followupTextHead": "もっと知りたいですか？例えば次のような情報も出せます："
 }

@@ -1,4 +1,11 @@
 {
-  "contentBlockTypes": [],
-  "followupTextContentFirstline": ""
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "text"
+  ],
+  "followupTextHead": "具体的なコードの書き方や、"
 }

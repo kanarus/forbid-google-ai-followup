@@ -1,4 +1,13 @@
 {
-  "contentBlockTypes": [],
-  "followupTextContentFirstline": ""
+  "contentBlockTypes": [
+    "text",
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "text",
+    "text"
+  ],
+  "followupTextHead": "もし特定の文脈（ビジネス、ビザの申請、ゲームのルールなど）があれば、"
 }

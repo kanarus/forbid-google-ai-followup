@@ -1,4 +1,21 @@
 {
-  "contentBlockTypes": [],
-  "followupTextContentFirstline": ""
+  "contentBlockTypes": [
+    "text",
+    "text",
+    "heading",
+    "text",
+    "codesnippet",
+    "heading",
+    "text",
+    "codesnippet",
+    "heading",
+    "text",
+    "codesnippet",
+    "heading",
+    "text",
+    "codesnippet",
+    "text",
+    "list"
+  ],
+  "followupTextHead": "If you are trying to implement something more specific, let me know:"
 }

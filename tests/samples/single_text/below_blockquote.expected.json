@@ -1,0 +1,13 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "blockquote",
+    "heading",
+    "list",
+    "blockquote",
+    "text"
+  ],
+  "followupTextHead": "もし特定のシチュエーション（例：スパイが組織に紛れ込んだ、書類のなかに紛れ込んだなど）があれば、"
+}

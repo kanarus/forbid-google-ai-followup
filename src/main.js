@@ -148,22 +148,22 @@ export class FollowupHandler {
 
 /**
   * @typedef {{ type: 'direct_maincol', element: HTMLDivElement } | { type: 'display_content', element: HTMLDivElement }} AIOverviewContainer
-  * @typedef {{ type: 'text', element: HTMLDivElement } | { type: 'heading', element: HTMLDivElement } | { type: 'codesnippet', element: HTMLDivElement } | { type: 'composite', element: HTMLDivElement } | { type: 'list', element: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'text', container: HTMLDivElement } | { type: 'heading', container: HTMLDivElement } | { type: 'codesnippet', container: HTMLDivElement } | { type: 'composite', container: HTMLDivElement } | { type: 'blockquote', container: HTMLDivElement } | { type: 'list', container: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
   */
 
 export class AIOverview {
   /** @type {AIOverviewContainer} */
-  container;
+  overviewContainer;
   /** @type {AIOverviewContentBlock[]} */
   contentBlocks;
 
   /**
-    * @param {AIOverviewContainer} container
+    * @param {AIOverviewContainer} overviewContainer
     * @param {AIOverviewContentBlock[]} contentBlocks
     * @returns {AIOverview}
     */
-  constructor(container, contentBlocks) {
-    this.container = container;
+  constructor(overviewContainer, contentBlocks) {
+    this.overviewContainer = overviewContainer;
     this.contentBlocks = contentBlocks;
   }
 
@@ -204,67 +204,71 @@ export class AIOverview {
     * @returns {AIOverview | null}
     */
   static fromDocument(doc) {
-    const container = AIOverview.#detectContainerFromDocument(doc);
-    if (container === null) {
+    const overviewContainer = AIOverview.#detectContainerFromDocument(doc);
+    if (overviewContainer === null) {
       return null;
     }
 
     /** @type {AIOverviewContentBlock[]} */
     let contentBlocks = [];
     /**
-      * @param {Element} element
+      * @param {Element} container
       * @returns {void}
       */
-    const pushAsContentBlocks = (element) => {
-      if (isInvisible(element)) return;
+    const recognizeContentBlock = (container) => {
+      if (isInvisible(container)) return;
 
-      if (isDiv(element)) {
-        if (isDisplayContents(element)) {
-          Array.from(element.children).forEach(pushAsContentBlocks);
+      if (isDiv(container)) {
+        if (isDisplayContents(container)) {
+          Array.from(container.children).forEach(recognizeContentBlock);
 
-        } else if (element.querySelector('[data-viewer-group]') !== null) {
+        } else if (container.querySelector('[data-viewer-group]') !== null) {
           return;
 
-        } else if (containsAttributeAsContainer(element, "data-type", "hovc")) {
+        } else if (containsAttributeAsContainer(container, "data-type", "hovc")) {
           return;
 
-        } else if (isSfcCp(element) || isBfc(element)) {
-          if (containsAttributeAsContainer(element, "role", "heading")) {
-            contentBlocks.push({ type: 'heading', element });
+        } else if (isSfcCp(container) || isBfc(container)) {
+          if (containsAttributeAsContainer(container, "role", "heading")) {
+            contentBlocks.push({ type: 'heading', container });
 
-          } else if (element.querySelector('pre > code') !== null) {
-            contentBlocks.push({ type: 'codesnippet', element });
+          } else if (container.querySelector('pre > code') !== null) {
+            contentBlocks.push({ type: 'codesnippet', container });
 
-          } else if (element.querySelector('ul') !== null || element.querySelector('ol') !== null) {
-            contentBlocks.push({ type: 'composite', element });
+          } else if (container.querySelector('blockquote') !== null) {
+            contentBlocks.push({ type: 'blockquote', container });
+
+          } else if (container.querySelector('ul') !== null || container.querySelector('ol') !== null) {
+            contentBlocks.push({ type: 'composite', container });
 
           } else {
-            contentBlocks.push({ type: 'text', element });
+            contentBlocks.push({ type: 'text', container });
           }
         }
-      } else if (isList(element)) {
+
+      } else if (isList(container)) {
         if (
-          Array.from(element.children)
+          Array.from(container.children)
             .filter(x => !isInvisible(x))
             .every(x => isDiv(x) && (isSfcCp(x) || isBfc(x) || isDisplayContents(x)))
         ) {
-          contentBlocks.push({ type: 'list', element });
+          contentBlocks.push({ type: 'list', container });
         }
       }
     };
 
-    for (const element of container.element.children) {
-      pushAsContentBlocks(element);
+    for (const container of overviewContainer.element.children) {
+      recognizeContentBlock(container);
     }
 
-    return new AIOverview(container, contentBlocks);
+    return new AIOverview(overviewContainer, contentBlocks);
   }
 
   dumpBlocks() {
     console.debug(`AI overview contents (${this.contentBlocks.length}):`);
     for (const contentBlock of this.contentBlocks) {
       console.debug(`type: ${contentBlock.type}`)
-      console.debug(contentBlock.element)
+      console.debug(contentBlock.container)
     }
   }
 
@@ -281,8 +285,8 @@ export class AIOverview {
     ) {
       return {
         type: 'text_with_list',
-        text: last2.element,
-        list: last1.element,
+        text: last2.container,
+        list: last1.container,
       };
 
     } else if (
@@ -293,9 +297,9 @@ export class AIOverview {
     ) {
       return {
         type: 'texts_sandwitch_list',
-        head: last3.element,
-        list: last2.element,
-        tail: last1.element,
+        head: last3.container,
+        list: last2.container,
+        tail: last1.container,
       };
 
     } else if (
@@ -304,7 +308,7 @@ export class AIOverview {
     ) {
       return {
         type: 'composite_block',
-        element: last1.element,
+        element: last1.container,
       };
 
     } else if (
@@ -331,7 +335,7 @@ const mo = new MutationObserver(() => {
     mo.disconnect();
     return;
   }
-  console.debug(`[forbid-google-ai-followup] found AI overview with ${ao.contentBlocks.length} blocks in ${ao.container.type} container`);
+  console.debug(`[forbid-google-ai-followup] found AI overview with ${ao.contentBlocks.length} blocks in ${ao.overviewContainer.type} container`);
 
   const f = ao.detectFollowup();
   if (f === null) {

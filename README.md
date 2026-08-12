@@ -8,13 +8,14 @@ For people feeling AI's followup extremely annoying, this extension dynamically 
 
 ## Installation
 
-| Browser | Install from ... |
-| :-----: | ---------------- |
-| Firefox | [Firefox Add-ons](https://addons.mozilla.org/addon/forbid-google-ai-followup) |
-| Chrome  | [Chrome Web Store](https://chromewebstore.google.com/detail/forbid-google-ai-followup/jjmeodedgihnbogdnafahieoohlkhlkn) |
-| Edge    | TODO (Edge Add-ons) |
-| Opera   | TODO (Opera Add-ons) |
-| other   | TODO (GitHub Releases) |
+| Browser             | Install from ... |
+| :-----:             | ---------------- |
+| Firefox             | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/forbid-google-ai-followup) |
+| Firefox for Android | [Firefox for Android extension](https://addons.mozilla.org/android/addon/forbid-google-ai-followup)
+| Chrome              | [Chrome Web Store](https://chromewebstore.google.com/detail/forbid-google-ai-followup/jjmeodedgihnbogdnafahieoohlkhlkn) |
+| Edge                | TODO (Edge Add-ons) |
+| Opera               | TODO (Opera Add-ons) |
+| other               | TODO (GitHub Releases) |
 
 ## Privacy Policy
 

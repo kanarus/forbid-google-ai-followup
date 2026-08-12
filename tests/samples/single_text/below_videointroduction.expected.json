@@ -1,0 +1,13 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "text",
+    "videointroduction",
+    "text"
+  ],
+  "followupTextHead": "もしよろしければ、お肉の量や、使いたい調味料・レシピの好み（つゆだく、生姜風味など）に合わせて詳しい分量をご案内できますが、追加で知りたいことはありますか？"
+}

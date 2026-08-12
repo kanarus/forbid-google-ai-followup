@@ -63,7 +63,7 @@ function isInvisible(element) {
   * @param {string | undefined} value
   * @returns {boolean}
   */
-function containsAttributeAsContainer(containerElement, key, value) {
+function containerContainsAttribute(containerElement, key, value) {
   return (
     containerElement.getAttribute(key) === (value || "") ||
     containerElement.querySelector(`[${key}="${value}"]`) !== null
@@ -195,7 +195,7 @@ export class FollowupHandler {
 
 /**
   * @typedef {{ type: 'direct_maincol', element: HTMLDivElement } | { type: 'display_content', element: HTMLDivElement }} AIOverviewContainer
-  * @typedef {{ type: 'text', block: HTMLDivElement } | { type: 'heading', block: HTMLDivElement } | { type: 'codeblock', block: HTMLDivElement } | { type: 'composite', block: HTMLDivElement } | { type: 'blockquote', block: HTMLDivElement } | { type: 'list', block: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'text', block: HTMLDivElement } | { type: 'heading', block: HTMLDivElement } | { type: 'codeblock', block: HTMLDivElement } | { type: 'composite', block: HTMLDivElement } | { type: 'blockquote', block: HTMLDivElement } | { type: 'videointroduction', block: HTMLDivElement } | { type: 'list', block: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
   */
 
 export class AIOverview {
@@ -272,11 +272,11 @@ export class AIOverview {
         } else if (block.querySelector('[data-viewer-group]') !== null) {
           return;
 
-        } else if (containsAttributeAsContainer(block, "data-type", "hovc")) {
+        } else if (containerContainsAttribute(block, "data-type", "hovc")) {
           return;
 
         } else if (isSfcCp(block) || isBfc(block)) {
-          if (containsAttributeAsContainer(block, "role", "heading")) {
+          if (containerContainsAttribute(block, "role", "heading")) {
             contentBlocks.push({ type: 'heading', block });
 
           } else if (block.querySelector('pre > code') !== null) {
@@ -284,6 +284,9 @@ export class AIOverview {
 
           } else if (block.querySelector('blockquote') !== null) {
             contentBlocks.push({ type: 'blockquote', block });
+
+          } else if (block.querySelector('video') !== null) {
+            contentBlocks.push({ type: 'videointroduction', block });
 
           } else if (block.querySelector('ul') !== null || block.querySelector('ol') !== null) {
             contentBlocks.push({ type: 'composite', block });

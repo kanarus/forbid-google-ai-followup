@@ -1,0 +1,14 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "videointroduction",
+    "composite"
+  ],
+  "followupTextHead": "もしよろしければ、以下を教えていただければさらに詳しくご案内できます："
+}

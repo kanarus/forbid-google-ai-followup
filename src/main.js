@@ -214,9 +214,15 @@ export class AIOverview {
     this.contentBlocks = contentBlocks;
   }
 
-  /** @returns {boolean} */
-  static streamingIsComplete() {
-    return document.querySelector('div[data-mcpr] div[data-type="hovc"]') !== null;
+  /**
+    * @param {Document} doc
+    * @returns {boolean}
+    **/
+  static streamingIsComplete(doc) {
+    return (
+      doc.querySelector('div[data-mcpr] div[data-type="hovc"]') !== null ||
+      doc.querySelector('div[data-subtree="aimc"] div[data-viewer-group]') !== null
+    );
   }
 
   /**
@@ -224,8 +230,14 @@ export class AIOverview {
     * @returns {AIOverviewContainer | null}
     */
   static #detectContainerFromDocument(doc) {
-    const mcprMainCol = doc.querySelector('div[data-mcpr] div[data-container-id="main-col"]');
-    if (mcprMainCol === null) return null;
+    const overviewLandmark = (
+      doc.querySelector('div[data-mcpr]') ||
+      doc.querySelector('div[data-subtree="aimc"]')
+    );
+    if (!overviewLandmark) return null;
+
+    const mcprMainCol = overviewLandmark.querySelector('div[data-container-id="main-col"]');
+    if (!mcprMainCol) return null;
 
     if (
       (mcprMainCol.firstElementChild instanceof HTMLDivElement) &&
@@ -251,11 +263,6 @@ export class AIOverview {
     * @returns {AIOverview | null}
     */
   static fromDocument(doc) {
-    const container = AIOverview.#detectContainerFromDocument(doc);
-    if (container === null) {
-      return null;
-    }
-
     /** @type {AIOverviewContentBlock[]} */
     let contentBlocks = [];
     /**
@@ -265,18 +272,30 @@ export class AIOverview {
     const recognizeContentBlock = (block) => {
       if (isInvisible(block)) return;
 
-      if (isDiv(block)) {
+      if (isList(block)) {
+        if (
+          Array.from(block.children)
+            .filter(x => !isInvisible(x))
+            .every(x => isDiv(x) && (isSfcCp(x) || isBfc(x) || isDisplayContents(x)))
+        ) {
+          contentBlocks.push({ type: 'list', block });
+        }
+
+      } else if (isDiv(block)) {
         if (isDisplayContents(block)) {
           Array.from(block.children).forEach(recognizeContentBlock);
 
-        } else if (block.querySelector('[data-viewer-group]') !== null) {
-          return;
-
-        } else if (containerContainsAttribute(block, "data-type", "hovc")) {
+        } else if (
+          block.querySelector('[data-viewer-group]') !== null ||
+          containerContainsAttribute(block, "data-type", "hovc")
+        ) {
           return;
 
         } else if (isSfcCp(block) || isBfc(block)) {
-          if (containerContainsAttribute(block, "role", "heading")) {
+          if (block.childElementCount === 1 && isList(block.firstElementChild)) {
+            contentBlocks.push({ type: 'list', block });
+
+          } else if (containerContainsAttribute(block, "role", "heading")) {
             contentBlocks.push({ type: 'heading', block });
 
           } else if (block.querySelector('pre > code') !== null) {
@@ -285,7 +304,10 @@ export class AIOverview {
           } else if (block.querySelector('blockquote') !== null) {
             contentBlocks.push({ type: 'blockquote', block });
 
-          } else if (block.querySelector('video') !== null) {
+          } else if (
+            block.querySelector('video') !== null ||
+            block.querySelector('div[role=button][aria-label] div[role=img][aria-label] svg') !== null
+          ) {
             contentBlocks.push({ type: 'videointroduction', block });
 
           } else if (block.querySelector('ul') !== null || block.querySelector('ol') !== null) {
@@ -295,18 +317,11 @@ export class AIOverview {
             contentBlocks.push({ type: 'text', block });
           }
         }
-
-      } else if (isList(block)) {
-        if (
-          Array.from(block.children)
-            .filter(x => !isInvisible(x))
-            .every(x => isDiv(x) && (isSfcCp(x) || isBfc(x) || isDisplayContents(x)))
-        ) {
-          contentBlocks.push({ type: 'list', block });
-        }
       }
     };
 
+    const container = AIOverview.#detectContainerFromDocument(doc);
+    if (container === null) return null;
     for (const block of container.element.children) {
       recognizeContentBlock(block);
     }
@@ -386,7 +401,7 @@ export class AIOverview {
 }
 
 const mo = new MutationObserver(() => {
-  if (!AIOverview.streamingIsComplete()) return;
+  if (!AIOverview.streamingIsComplete(document)) return;
 
   const ao = AIOverview.fromDocument(document);
   if (ao === null) {

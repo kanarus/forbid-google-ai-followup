@@ -1,0 +1,11 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "list",
+    "composite"
+  ],
+  "followupTextHead": "もっと詳しく知りたい場合は、以下から選んで教えてください："
+}

@@ -306,7 +306,7 @@ export class AIOverview {
 
           } else if (
             block.querySelector('video') !== null ||
-            block.querySelector('div[role=button][aria-label] div[role=img][aria-label] svg') !== null
+            block.querySelector('a[aria-labelledby][href*="youtube.com"]') !== null
           ) {
             contentBlocks.push({ type: 'videointroduction', block });
 

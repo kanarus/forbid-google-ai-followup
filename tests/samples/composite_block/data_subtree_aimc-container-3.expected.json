@@ -1,0 +1,10 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "list",
+    "videointroduction",
+    "composite"
+  ],
+  "followupTextHead": "もしよろしければ、以下を教えていただけますか？"
+}

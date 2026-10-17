@@ -95,7 +95,8 @@ export class FollowupHandler {
         return this.followup.head.textContent + this.followup.list.textContent + this.followup.tail.textContent;
       case "mixed_in_codeblock":
         return (this.followup.codetag.textContent
-          .split("\n").join("")
+          .split("\n")
+          .join("")
           .match(/<FollowUp>(.*)<\/FollowUp>/)?.at(1)
         || "").split("\n").join("").trim();
       default:
@@ -220,8 +221,8 @@ export class AIOverview {
     **/
   static streamingIsComplete(doc) {
     return (
-      doc.querySelector('div[data-mcpr] div[data-type="hovc"]') !== null ||
-      doc.querySelector('div[data-subtree="aimc"] div[data-viewer-group]') !== null
+      doc.querySelector('div[data-mcpr] [data-type="hovc"]') !== null ||
+      doc.querySelector('div[data-subtree="aimc"] [data-src-id]') !== null
     );
   }
 
@@ -285,34 +286,41 @@ export class AIOverview {
         if (isDisplayContents(block)) {
           Array.from(block.children).forEach(recognizeContentBlock);
 
-        } else if (
-          block.querySelector('[data-viewer-group]') !== null ||
-          containerContainsAttribute(block, "data-type", "hovc")
-        ) {
+        } else if (containerContainsAttribute(block, "data-type", "hovc")) {
           return;
 
         } else if (isSfcCp(block) || isBfc(block)) {
-          if (block.childElementCount === 1 && isList(block.firstElementChild)) {
-            contentBlocks.push({ type: 'list', block });
-
-          } else if (containerContainsAttribute(block, "role", "heading")) {
+          // priority 1
+          if (containerContainsAttribute(block, "role", "heading")) {
             contentBlocks.push({ type: 'heading', block });
 
-          } else if (block.querySelector('pre > code') !== null) {
-            contentBlocks.push({ type: 'codeblock', block });
-
-          } else if (block.querySelector('blockquote') !== null) {
-            contentBlocks.push({ type: 'blockquote', block });
-
+          // priority 2
+          // Multiple video items may be listed in one videointroduction
+          // using div[role="list"] and div[role="listitem"]s
           } else if (
             block.querySelector('video') !== null ||
             block.querySelector('a[aria-labelledby][href*="youtube.com"]') !== null
           ) {
             contentBlocks.push({ type: 'videointroduction', block });
 
+          // priority 3
+          } else if (
+            (block.childElementCount === 1 && isList(block.firstElementChild)) ||
+            containerContainsAttribute(block, "role", "list")
+          ) {
+            contentBlocks.push({ type: 'list', block });
+
+          // priority 4
+          // Codeblock or blockquote can be nestedly used in list item.
+          // Only when directly used they should be recognized
+          } else if (block.querySelector('pre > code') !== null) {
+            contentBlocks.push({ type: 'codeblock', block });
+          } else if (block.querySelector('blockquote') !== null) {
+            contentBlocks.push({ type: 'blockquote', block });
+
+          // priority 5
           } else if (block.querySelector('ul') !== null || block.querySelector('ol') !== null) {
             contentBlocks.push({ type: 'composite', block });
-
           } else {
             contentBlocks.push({ type: 'text', block });
           }

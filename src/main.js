@@ -222,8 +222,7 @@ export class AIOverview {
   static streamingIsComplete(doc) {
     return (
       doc.querySelector('div[data-mcpr] [data-type="hovc"]') !== null ||
-      // doc.querySelector('div[data-subtree="aimc"] [data-src-id]') !== null
-      doc.querySelectorAll('[data-xid="aim-mars-input-plate"]') !== null
+      doc.querySelector('[data-xid="aim-mars-input-plate"]') !== null
     );
   }
 

@@ -221,8 +221,10 @@ export class AIOverview {
     **/
   static streamingIsComplete(doc) {
     return (
-      doc.querySelector('div[data-mcpr] [data-type="hovc"]') !== null ||
-      doc.querySelector('[data-xid="aim-mars-input-plate"]') !== null
+      // old style
+      doc.querySelector('div[data-mcpr] div[data-type="hovc"]') !== null ||
+      // new style
+      doc.querySelector('div[data-ignore-copy] div[role=status]') !== null
     );
   }
 
@@ -232,7 +234,9 @@ export class AIOverview {
     */
   static #detectContainerFromDocument(doc) {
     const overviewLandmark = (
+      // old style
       doc.querySelector('div[data-mcpr]') ||
+      // new style
       doc.querySelector('div[data-subtree="aimc"]')
     );
     if (!overviewLandmark) return null;

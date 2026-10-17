@@ -1,0 +1,12 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "heading",
+    "codeblock",
+    "heading",
+    "list",
+    "text",
+    "text"
+  ],
+  "followupTextHead": "もし特定の条件（「○日以上前のログファイルを削除したい」「特定の拡張子を一括検索したい」など）がお決まりでしたら、具体的なコマンドをご案内しますのでお知らせください。"
+}

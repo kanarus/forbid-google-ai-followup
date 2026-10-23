@@ -47,7 +47,7 @@ function isDisplayContents(element) {
   * @param {HTMLElement} element
   * @returns {boolean}
   */
-function isInvisible(element) {
+function isUnreadable(element) {
   if (element.style.display === "none") {
     return true;
   }
@@ -71,7 +71,7 @@ function containerContainsAttribute(containerElement, key, value) {
 }
 
 /**
-  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement } | { type: 'mixed_in_codeblock', codetag: HTMLElement }} Followup
+  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'double_texts', first: HTMLDivElement, second: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement } | { type: 'mixed_in_codeblock', codetag: HTMLElement }} Followup
   */
 
 export class FollowupHandler {
@@ -87,6 +87,8 @@ export class FollowupHandler {
     switch (this.followup.type) {
       case "single_text":
         return this.followup.element.textContent;
+      case "double_texts":
+        return this.followup.first.textContent + this.followup.second.textContent;
       case "composite_block":
         return this.followup.element.textContent;
       case "text_with_list":
@@ -116,6 +118,9 @@ export class FollowupHandler {
       case "single_text":
         console.debug(this.followup.element);
         return;
+      case "double_texts":
+        console.debug(this.followup.first);
+        console.debug(this.followup.second);
       case "composite_block":
         console.debug(this.followup.element);
         return;
@@ -145,6 +150,10 @@ export class FollowupHandler {
     switch (this.followup.type) {
       case "single_text":
         this.followup.element.style.display = "none";
+        return;
+      case "double_texts":
+        this.followup.first.style.display = "none";
+        this.followup.second.style.display = "none";
         return;
       case "composite_block":
         this.followup.element.style.display = "none";
@@ -196,7 +205,7 @@ export class FollowupHandler {
 
 /**
   * @typedef {{ type: 'direct_maincol', element: HTMLDivElement } | { type: 'display_content', element: HTMLDivElement }} AIOverviewContainer
-  * @typedef {{ type: 'text', block: HTMLDivElement } | { type: 'heading', block: HTMLDivElement } | { type: 'codeblock', block: HTMLDivElement } | { type: 'composite', block: HTMLDivElement } | { type: 'blockquote', block: HTMLDivElement } | { type: 'videointroduction', block: HTMLDivElement } | { type: 'list', block: HTMLUListElement | HTMLOListElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'text', block: HTMLDivElement } | { type: 'heading', block: HTMLDivElement } | { type: 'codeblock', block: HTMLDivElement } | { type: 'composite', block: HTMLDivElement } | { type: 'blockquote', block: HTMLDivElement } | { type: 'videointroduction', block: HTMLDivElement } | { type: 'list', block: HTMLUListElement | HTMLOListElement } | { type: 'hrline', block: HTMLDivElement }} AIOverviewContentBlock
   */
 
 export class AIOverview {
@@ -247,11 +256,11 @@ export class AIOverview {
     if (
       (mcprMainCol.firstElementChild instanceof HTMLDivElement) &&
       mcprMainCol.firstElementChild.style.display === "contents" &&
-      (!isInvisible(mcprMainCol.firstElementChild))
+      (!isUnreadable(mcprMainCol.firstElementChild))
     ) {
       return { type: 'display_content', element: mcprMainCol.firstElementChild };
 
-    } else if (!isInvisible(mcprMainCol)) {
+    } else if (!isUnreadable(mcprMainCol)) {
       return { type: 'direct_maincol', element: mcprMainCol };
 
     } else {
@@ -275,17 +284,20 @@ export class AIOverview {
       * @returns {void}
       */
     const recognizeContentBlock = (block) => {
-      if (isInvisible(block)) return;
-
-      if (isList(block)) {
+      if (isUnreadable(block)) {
+        if (block.querySelector('hr')) {
+          contentBlocks.push({ type: 'hrline', block });
+        } else {
+          return;
+        }
+      } else if (isList(block)) {
         if (
           Array.from(block.children)
-            .filter(x => !isInvisible(x))
+            .filter(x => !isUnreadable(x))
             .every(x => isDiv(x) && (isSfcCp(x) || isBfc(x) || isDisplayContents(x)))
         ) {
           contentBlocks.push({ type: 'list', block });
         }
-
       } else if (isDiv(block)) {
         if (isDisplayContents(block)) {
           Array.from(block.children).forEach(recognizeContentBlock);
@@ -395,6 +407,17 @@ export class AIOverview {
       return {
         type: 'composite_block',
         element: last1.block,
+      };
+
+    } else if (
+      last3?.type === 'hrline' &&
+      last2?.type === 'text' &&
+      last1?.type === 'text'
+    ) {
+      return {
+        type: 'double_texts',
+        first: last2.block,
+        second: last1.block,
       };
 
     } else if (

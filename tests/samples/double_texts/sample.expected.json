@@ -1,0 +1,24 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "text",
+    "heading",
+    "list",
+    "hrline",
+    "heading",
+    "text",
+    "heading",
+    "text",
+    "list",
+    "heading",
+    "text",
+    "list",
+    "heading",
+    "text",
+    "list",
+    "hrline",
+    "text",
+    "text"
+  ],
+  "followupTextHead": "もしこれが特定の参考書、プログラミング言語、または講義のスライドなどに登場したものであれば、前後の文脈を教えていただけると、より正確な意図をお答えできます。"
+}

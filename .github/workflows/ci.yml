@@ -8,9 +8,10 @@ on:
     branches: ['main']
 
 jobs:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
-    - run: |
-        nix develop
-        run test
+  CI:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - run: |
+          nix develop
+          run test

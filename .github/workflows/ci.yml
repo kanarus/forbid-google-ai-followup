@@ -8,9 +8,11 @@ on:
     branches: ['main']
 
 jobs:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
-    - run: |
-        nix develop
-        run test
+  CI:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - shell: nix develop --command bash -euo pipefail {0}
+        run: |
+          run test

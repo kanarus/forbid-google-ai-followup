@@ -1,9 +1,11 @@
 name: CI
 
+permissions: {}
+
 on:
   pull_request:
   push:
-    branch: ['main']
+    branches: ['main']
 
 jobs:
   runs-on: ubuntu-latest

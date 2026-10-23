@@ -46,6 +46,9 @@ const testForType = (
 test('Document -> AIOverview -> Followup detection correctness [single_text]', () => {
   testForType('single_text');
 });
+test('Document -> AIOverview -> Followup detection correctness [double_texts]', () => {
+  testForType('double_texts');
+});
 test('Document -> AIOverview -> Followup detection correctness [composite_block]', () => {
   testForType('composite_block');
 });

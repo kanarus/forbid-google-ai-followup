@@ -3,7 +3,7 @@
   "author": "kanarus",
   "name": "Forbid Google AI Followup",
   "version": "0.7.3",
-  "description": "Forbids followup at the end of AI overview in Google search.",
+  "description": "Forbids follow-up at the end of AI overview in Google search.",
   "content_scripts": [
     {
       "matches": ["*://www.google.com/search*"],

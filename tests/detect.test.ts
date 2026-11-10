@@ -55,6 +55,9 @@ test('Document -> AIOverview -> Followup detection correctness [composite_block]
 test('Document -> AIOverview -> Followup detection correctness [text_with_list]', () => {
   testForType('text_with_list');
 });
+test('Document -> AIOverview -> Followup detection correctness [text_with_list_and_codetip]', () => {
+  testForType('text_with_list_and_codetip');
+});
 test('Document -> AIOverview -> Followup detection correctness [texts_sandwitch_list]', () => {
   testForType('texts_sandwitch_list');
 });

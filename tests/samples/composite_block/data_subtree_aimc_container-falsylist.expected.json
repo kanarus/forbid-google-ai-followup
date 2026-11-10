@@ -1,0 +1,12 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "codeblock",
+    "hrline",
+    "heading",
+    "text",
+    "list",
+    "composite"
+  ],
+  "followupTextHead": "もし解決したい問題が別にある場合は、以下を教えていただければ具体的なコードを提案できます。"
+}

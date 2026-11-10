@@ -1,0 +1,18 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "text",
+    "heading",
+    "text",
+    "codeblock",
+    "list",
+    "heading",
+    "text",
+    "codeblock",
+    "heading",
+    "text",
+    "codeblock",
+    "composite"
+  ],
+  "followupTextHead": "If the error still happens after updating your config, let me know:"
+}

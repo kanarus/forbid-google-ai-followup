@@ -43,35 +43,72 @@ function isDisplayContents(element) {
   return element.style.display === "contents";
 }
 
+/** 
+  * @param {HTMLElement} element
+  * @returns {boolean}
+  */
+function mockCheckVisibility(element) {
+  if (element.style?.display === "none") {
+    return false;
+  }
+  if (element.parentElement) {
+    return mockCheckVisibility(element.parentElement);
+  }
+  return true;
+};
 /**
   * @param {HTMLElement} element
   * @returns {boolean}
   */
-function isUnreadable(element) {
-  if (element.style.display === "none") {
-    return true;
+function isVisible(element) {
+  if (getComputedStyle(element).visibility === "hidden") {
+    return false;
   }
-  if (element.textContent.trim() === "") {
-    return true;
+  if (element.checkVisibility) {
+    return element.checkVisibility();
+  } else {
+    return mockCheckVisibility(element);
   }
-  return false;
+}
+/**
+  * @param {HTMLElement | null | undefined}
+  * @returns {boolean}
+  */
+function existsInvisibly(element) {
+  return element && !isVisible(element);
+}
+/**
+  * @param {HTMLElement | null | undefined} element
+  * @returns {boolean}
+  */
+function existsVisibly(element) {
+  return element && isVisible(element)
 }
 
 /**
+  * Judges if self OR a child has the attribute.
+  *
   * @param {HTMLElement} containerElement
   * @param {string} key
   * @param {string | undefined} value
+  * @param {{ where: (it: HTMLElement) => boolean } | undefined} options
   * @returns {boolean}
   */
-function containerContainsAttribute(containerElement, key, value) {
-  return (
-    containerElement.getAttribute(key) === (value || "") ||
-    containerElement.querySelector(`[${key}="${value}"]`) !== null
-  );
+function containerContainsAttribute(containerElement, key, value, options) {
+  /** @type {HTMLElement | null} */
+  let attributeOwner;
+  if (value) {
+    if (containerElement.getAttribute(key) === value) attributeOwner = containerElement;
+    else attributeOwner = containerElement.querySelector(`[${key}="${value}"]`);
+  } else {
+    if (containerElement.getAttribute(key) !== null) attributeOwner = containerElement;
+    else attributeOwner = containerElement.querySelector(`[${key}]`);
+  }
+  return (attributeOwner !== null) && (options?.where(attributeOwner) || true);
 }
 
 /**
-  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'double_texts', first: HTMLDivElement, second: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement } | { type: 'mixed_in_codeblock', codetag: HTMLElement }} Followup
+  * @typedef {{ type: 'single_text', element: HTMLDivElement } | { type: 'double_texts', first: HTMLDivElement, second: HTMLDivElement } | { type: 'composite_block', element: HTMLDivElement } | { type: 'text_with_list', text: HTMLDivElement, list: HTMLUListElement | HTMLOListElement } | { type: 'text_with_list_and_codetip', text: HTMLDivElement, list: HTMLDivElement, codetip: HTMLDivElement } | { type: 'texts_sandwitch_list', head: HTMLDivElement, list: HTMLUListElement | HTMLOListElement, tail: HTMLDivElement } | { type: 'mixed_in_codeblock', codetag: HTMLElement }} Followup
   */
 
 export class FollowupHandler {
@@ -93,6 +130,8 @@ export class FollowupHandler {
         return this.followup.element.textContent;
       case "text_with_list":
         return this.followup.text.textContent + this.followup.list.textContent;
+      case "text_with_list_and_codetip":
+        return this.followup.text.textContent + this.followup.list.textContent + '[tooltip (code)]';
       case "texts_sandwitch_list":
         return this.followup.head.textContent + this.followup.list.textContent + this.followup.tail.textContent;
       case "mixed_in_codeblock":
@@ -128,6 +167,11 @@ export class FollowupHandler {
         console.debug(this.followup.text);
         console.debug(this.followup.list);
         return;
+      case "text_with_list_and_codetip":
+        console.debug(this.followup.text);
+        console.debug(this.followup.list);
+        console.debug(this.followup.codetip);
+        return;
       case "texts_sandwitch_list":
         console.debug(this.followup.head);
         console.debug(this.followup.list);
@@ -161,6 +205,11 @@ export class FollowupHandler {
       case "text_with_list":
         this.followup.text.style.display = "none";
         this.followup.list.style.display = "none";
+        return;
+      case "text_with_list_and_codetip":
+        this.followup.text.style.display = "none";
+        this.followup.list.style.display = "none";
+        this.followup.codetip.style.display = "none";
         return;
       case "texts_sandwitch_list":
         this.followup.head.style.display = "none";
@@ -205,7 +254,7 @@ export class FollowupHandler {
 
 /**
   * @typedef {{ type: 'direct_maincol', element: HTMLDivElement } | { type: 'display_content', element: HTMLDivElement }} AIOverviewContainer
-  * @typedef {{ type: 'text', block: HTMLDivElement } | { type: 'heading', block: HTMLDivElement } | { type: 'codeblock', block: HTMLDivElement } | { type: 'composite', block: HTMLDivElement } | { type: 'blockquote', block: HTMLDivElement } | { type: 'videointroduction', block: HTMLDivElement } | { type: 'list', block: HTMLUListElement | HTMLOListElement } | { type: 'hrline', block: HTMLDivElement }} AIOverviewContentBlock
+  * @typedef {{ type: 'text', block: HTMLDivElement } | { type: 'heading', block: HTMLDivElement } | { type: 'codeblock', block: HTMLDivElement } | { type: 'mathblock', block: HTMLDivElement } | { type: 'codetip', block: HTMLDivElement } | { type: 'composite', block: HTMLDivElement } | { type: 'blockquote', block: HTMLDivElement } | { type: 'videointroduction', block: HTMLDivElement } | { type: 'list', block: HTMLUListElement | HTMLOListElement } | { type: 'hrline', block: HTMLDivElement }} AIOverviewContentBlock
   */
 
 export class AIOverview {
@@ -225,28 +274,28 @@ export class AIOverview {
   }
 
   /**
-    * @param {Document} doc
-    * @returns {boolean}
-    **/
-  static streamingIsComplete(doc) {
+    * @param {ParentNode} node
+    * @returns {HTMLElement | null}
+    */
+  static #detectReactionButtons(node) {
     return (
       // old style
-      doc.querySelector('div[data-mcpr] div[data-type="hovc"]') !== null ||
+      node.querySelector('div[data-mcpr] div[data-type="hovc"]') ||
       // new style
-      doc.querySelector('div[data-ignore-copy] div[role=status]') !== null
+      node.querySelector('div[data-ignore-copy] div[role=status]')
     );
   }
 
   /**
-    * @param {Document} doc
+    * @param {ParentNode} node
     * @returns {AIOverviewContainer | null}
     */
-  static #detectContainerFromDocument(doc) {
+  static #detectContainer(node) {
     const overviewLandmark = (
       // old style
-      doc.querySelector('div[data-mcpr]') ||
+      node.querySelector('div[data-mcpr]') ||
       // new style
-      doc.querySelector('div[data-subtree="aimc"]')
+      node.querySelector('div[data-subtree="aimc"]')
     );
     if (!overviewLandmark) return null;
 
@@ -256,16 +305,24 @@ export class AIOverview {
     if (
       (mcprMainCol.firstElementChild instanceof HTMLDivElement) &&
       mcprMainCol.firstElementChild.style.display === "contents" &&
-      (!isUnreadable(mcprMainCol.firstElementChild))
+      (isVisible(mcprMainCol.firstElementChild))
     ) {
       return { type: 'display_content', element: mcprMainCol.firstElementChild };
 
-    } else if (!isUnreadable(mcprMainCol)) {
+    } else if (isVisible(mcprMainCol)) {
       return { type: 'direct_maincol', element: mcprMainCol };
 
     } else {
       return null;
     }
+  }
+
+  /**
+    * @param {Document} doc
+    * @returns {boolean}
+    **/
+  static streamingIsComplete(doc) {
+    return AIOverview.#detectReactionButtons(doc) !== null;
   }
 
   /**
@@ -284,20 +341,24 @@ export class AIOverview {
       * @returns {void}
       */
     const recognizeContentBlock = (block) => {
-      if (isUnreadable(block)) {
-        if (block.querySelector('hr')) {
+      if (!isVisible(block)) return;
+
+      if (block.textContent.trim() === "") {
+        if (existsVisibly(block.querySelector('hr'))) {
           contentBlocks.push({ type: 'hrline', block });
         } else {
           return;
         }
+
       } else if (isList(block)) {
         if (
           Array.from(block.children)
-            .filter(x => !isUnreadable(x))
+            .filter(isVisible)
             .every(x => isDiv(x) && (isSfcCp(x) || isBfc(x) || isDisplayContents(x)))
         ) {
           contentBlocks.push({ type: 'list', block });
         }
+
       } else if (isDiv(block)) {
         if (isDisplayContents(block)) {
           Array.from(block.children).forEach(recognizeContentBlock);
@@ -309,47 +370,55 @@ export class AIOverview {
           // priority 1
           if (containerContainsAttribute(block, "role", "heading")) {
             contentBlocks.push({ type: 'heading', block });
+          } else if (
+            containerContainsAttribute(block, "data-tooltip-id") &&
+            existsInvisibly(block.querySelector('pre > code'))
+          ) {
+            contentBlocks.push({ type: 'codetip', block });
 
           // priority 2
           // Multiple video items may be listed in one videointroduction
           // using div[role="list"] and div[role="listitem"]s
           } else if (
-            block.querySelector('video') !== null ||
-            block.querySelector('a[aria-labelledby][href*="youtube.com"]') !== null
+            existsVisibly(block.querySelector('video')) ||
+            existsVisibly(block.querySelector('a[aria-labelledby][href*="youtube.com"]'))
           ) {
             contentBlocks.push({ type: 'videointroduction', block });
 
           // priority 3
-          } else if (
+          // Note that the reaction buttons sometimes contains list elements
+          } else if ((!AIOverview.#detectReactionButtons(block)) && (
             (block.childElementCount === 1 && isList(block.firstElementChild)) ||
-            containerContainsAttribute(block, "role", "list")
-          ) {
+            (containerContainsAttribute(block, "role", "list"))
+          )) {
             contentBlocks.push({ type: 'list', block });
 
           // priority 4
-          // Codeblock or blockquote can be nestedly used in list item.
+          // Codeblock or blockquote or mathblock can be nestedly used in list item.
           // Only when directly used they should be recognized
-          } else if (block.querySelector('pre > code') !== null) {
+          } else if (existsVisibly(block.querySelector('pre > code'))) {
             contentBlocks.push({ type: 'codeblock', block });
-          } else if (block.querySelector('blockquote') !== null) {
+          } else if (existsVisibly(block.querySelector('blockquote'))) {
             contentBlocks.push({ type: 'blockquote', block });
+          } else if (existsVisibly(block.querySelector('div[style*=block] math'))) {
+            contentBlocks.push({ type: 'mathblock', block });
 
           // priority 5
-          } else if (block.querySelector('ul') !== null || block.querySelector('ol') !== null) {
+          } else if (existsVisibly(block.querySelector('ul')) || existsVisibly(block.querySelector('ol'))) {
             contentBlocks.push({ type: 'composite', block });
-          } else {
+          } else if (!AIOverview.#detectReactionButtons(block)) {
             contentBlocks.push({ type: 'text', block });
           }
         }
       }
     };
 
-    const container = AIOverview.#detectContainerFromDocument(doc);
+    const container = AIOverview.#detectContainer(doc);
     if (container === null) return null;
+
     for (const block of container.element.children) {
       recognizeContentBlock(block);
     }
-
     return new AIOverview(container, contentBlocks);
   }
 
@@ -385,6 +454,18 @@ export class AIOverview {
         type: 'text_with_list',
         text: last2.block,
         list: last1.block,
+      };
+
+    } else if (
+      last3?.type === 'text' &&
+      last2?.type === 'list' &&
+      last1?.type === 'codetip'
+    ) {
+      return {
+        type: 'text_with_list_and_codetip',
+        text: last3.block,
+        list: last2.block,
+        codetip: last1.block,
       };
 
     } else if (

@@ -1,0 +1,16 @@
+{
+  "contentBlockTypes": [
+    "text",
+    "text",
+    "heading",
+    "list",
+    "heading",
+    "text",
+    "mathblock",
+    "hrline",
+    "text",
+    "list",
+    "codetip"
+  ],
+  "followupTextHead": "もしよろしければ、以下の内容についても解説できますのでお知らせください。"
+}

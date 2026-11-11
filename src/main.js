@@ -64,8 +64,12 @@ function isVisible(element) {
   if (getComputedStyle(element).visibility === "hidden") {
     return false;
   }
-  if (element.checkVisibility) {
-    return element.checkVisibility();
+  if (element['checkVisibility']) {
+    if (isDisplayContents(element)) {
+      return Array.from(element.children).some(c => c.checkVisibility());
+    } else {
+      return element.checkVisibility();
+    }
   } else {
     return mockCheckVisibility(element);
   }
